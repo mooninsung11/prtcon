@@ -1,0 +1,82 @@
+import pandas as pd
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+import pymysql
+
+def main():
+    # 1. 파일 열기 (파일 다이얼로그)
+    root = Tk()
+    root.withdraw()
+    file_path = askopenfilename(
+        title="CSV 파일을 선택하세요",
+        filetypes=[("CSV files", "*.csv")]
+    )
+    root.destroy()
+    if not file_path:
+        print("파일이 선택되지 않았습니다.")
+        return
+
+    # 2. CSV 읽기 (구분자 탭/쉼표 자동 인식)
+    try:
+        df = pd.read_csv(file_path, encoding='utf-8')
+    except:
+        df = pd.read_csv(file_path, encoding='cp949')  # 한글깨짐시
+
+    print(f"\n📂 불러온 파일: {file_path}\n")
+    print(df.head())
+    print(df.columns)
+
+    # 3. NaN → None (MySQL NULL로 들어가게)
+    df = df.where(pd.notnull(df), None)
+
+    # 4. 컬럼 매핑: CSV → Hospital 테이블
+    df_db = pd.DataFrame({
+        'name': df['FCLTY_NM'],
+        'address': df['RDNMADR_NM'],
+        'opening_hours': df['OPER_TIME'],
+        'services': df['FCLTY_INFO_DC'],
+        'avg_rating': None,   # CSV에 없으니 전부 None으로
+        'latitude': df['LC_LA'],
+        'longitude': df['LC_LO']
+    })
+
+    # 5. DB 연결
+    conn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='1234',   # 본인 DB 비밀번호
+        db='test',         # 본인 DB 이름
+        charset='utf8'
+    )
+    cursor = conn.cursor()
+
+    # 6. INSERT 쿼리 (Hospital 테이블)
+    sql = """
+    INSERT INTO hospital (name, address, opening_hours, services, avg_rating, latitude, longitude)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+
+    count = 0
+    for _, row in df_db.iterrows():
+        # 위도, 경도, 기타 숫자 전처리
+        latitude = float(row['latitude']) if row['latitude'] not in (None, '', ' ') else None
+        longitude = float(row['longitude']) if row['longitude'] not in (None, '', ' ') else None
+
+        cursor.execute(sql, (
+            row['name'],
+            row['address'],
+            row['opening_hours'],
+            row['services'],
+            row['avg_rating'],
+            latitude,
+            longitude
+        ))
+        count += 1
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"✅ 총 {count}개 레코드를 Hospital 테이블에 삽입했습니다.")
+
+if __name__ == "__main__":
+    main()

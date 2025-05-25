@@ -1,0 +1,60 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+import re
+
+# ✅ 한글 폰트 설정
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['axes.unicode_minus'] = False
+
+# 📂 파일 탐색기 열기
+Tk().withdraw()
+file_path = askopenfilename(title="CSV 파일을 선택하세요", filetypes=[("CSV files", "*.csv")])
+data = pd.read_csv(file_path)
+
+print(f"\n📂 불러온 파일: {file_path}\n")
+print(data.head())
+
+# ✅ 컬럼명 변경
+data.rename(columns={
+    '출발지명': 'origin',
+    'TM_CD': 'hour',
+    'CFTM_AVE_TRFC_QTY': 'total_ride_count'
+}, inplace=True)
+
+# ✅ origin에서 숫자 제거 (예: '가락1동' → '가락동')
+
+
+# ✅ 동별 × 시간대별 합산
+data_grouped = data.groupby(['origin', 'hour'], as_index=False).sum()
+
+# ✅ 총 통행량 기준 상위 30개 동 추출
+top_origins = (
+    data_grouped.groupby('origin')['total_ride_count']
+    .sum()
+    .sort_values(ascending=False)
+    .head(30)
+    .index
+)
+
+# ✅ 상위 동 필터링
+filtered_data = data_grouped[data_grouped['origin'].isin(top_origins)]
+
+# ✅ 피벗 테이블 생성
+pivot_data = filtered_data.pivot(index='origin', columns='hour', values='total_ride_count')
+
+# ✅ 히트맵 시각화
+plt.figure(figsize=(15, 12))
+sns.heatmap(pivot_data, cmap='YlGnBu', annot=False, linewidths=.5)
+
+plt.title('상위 30개 동 × 시간대별 통행량 히트맵', fontsize=20)
+plt.xlabel('시간대 (Hour)', fontsize=15)
+plt.ylabel('출발지 (Origin)', fontsize=15)
+
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=8)
+
+plt.tight_layout()
+plt.show()

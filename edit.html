@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원정보 수정 - PetConnect</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fff8e7;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 30px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #ff9800;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #f57c00;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>회원정보 수정</h2>
+    <form id="edit-form">
+      <!-- 기본 정보 -->
+      <label for="username">아이디</label>
+      <input type="text" id="username" readonly />
+
+      <label for="email">이메일</label>
+      <input type="email" id="email" required />
+
+      <label for="password">비밀번호 변경 (선택사항)</label>
+      <input type="password" id="password" placeholder="새 비밀번호 입력" />
+
+      <label for="postcode">우편번호</label>
+      <input type="text" id="postcode" placeholder="우편번호" required />
+      <button type="button" onclick="searchAddress()">우편번호 찾기</button>
+
+      <label for="address">주소</label>
+      <input type="text" id="address" placeholder="주소" required />
+      <input type="text" id="addressDetail" placeholder="상세주소" required />
+      
+      <label for="dog">견종</label>
+      <input type="text" id="dog_type" required />
+
+      <label for="old">강아지 나이</label>
+      <input type="number" id="dog_old" required />
+
+      <button type="submit">저장하기</button>
+    </form>
+  </div>
+
+  <!-- 다음 주소 API -->
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script>
+    const username = localStorage.getItem('username'); // 로그인 시 저장해두어야 합니다
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1) 현재 정보 로드
+      fetch(`http://127.0.0.1:5000/api/user/${username}`)
+        .then(res => res.json())
+        .then(user => {
+          document.getElementById('username').value = user.username;
+          document.getElementById('email').value = user.email;
+          // region에서 우편번호+주소+상세주소 분리 저장해두었다고 가정
+          document.getElementById('dog_type').value = user.dogtype;
+          document.getElementById('dog_old').value = user.dogold;
+          const parts = user.region.split(' ');
+          document.getElementById('postcode').value = parts[0] || '';
+          document.getElementById('address').value = parts[1] || '';
+          document.getElementById('addressDetail').value = parts.slice(2).join(' ') || '';
+        });
+
+      // 2) 폼 제출 핸들링
+      document.getElementById('edit-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveChanges();
+      });
+    });
+
+    function searchAddress() {
+      new daum.Postcode({
+        oncomplete: function(data) {
+          document.getElementById('postcode').value = data.zonecode;
+          document.getElementById('address').value = data.roadAddress;
+          document.getElementById('addressDetail').focus();
+        }
+      }).open();
+    }
+
+    function saveChanges() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const postcode = document.getElementById('postcode').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const addressDetail = document.getElementById('addressDetail').value.trim();
+  const dogtype = document.getElementById('dog_type').value.trim();
+  let dogold = document.getElementById('dog_old').value.trim();
+  dogold = dogold === "" ? null : Number(dogold);
+
+  const region = `${postcode} ${address} ${addressDetail}`;
+  const payload = { 
+    email, 
+    region, 
+    dog_type: dogtype,   // ← 변수명 맞추기!
+    dog_old: dogold      // ← 변수명 맞추기!
+  };
+  if (password) payload.password = password; // 비밀번호 변경 시에만
+
+  fetch(`http://127.0.0.1:5000/api/user/${username}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert('정보가 성공적으로 저장되었습니다.');
+      location.href = 'mypage.html';
+    } else {
+      alert('저장 실패: ' + data.message);
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('서버 오류가 발생했습니다.');
+  });
+}
+  </script>
+
+</body>
+</html>

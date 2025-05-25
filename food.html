@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>강아지 사료 모음 - PetConnect</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #fff8e7;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 50px;
+      background: white;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    .auth {
+      display: flex;
+      gap: 20px;
+      margin-right: 60px;
+    }
+
+    .auth a {
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 100px 30px 50px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .category-filter {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .category-filter button {
+      padding: 8px 16px;
+      border: none;
+      background: #ffb74d;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .category-filter button:hover {
+      background: #ffa726;
+    }
+
+    .product-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 250px;
+      text-align: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    .product-card img {
+      width: 100px;
+      height: 100px;
+    }
+
+    .product-card h3 {
+      margin: 15px 0 5px;
+      font-size: 18px;
+    }
+
+    .product-card p {
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .heart {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 20px;
+      cursor: pointer;
+      color: #ccc;
+    }
+
+    .heart.active {
+      color: red;
+    }
+
+    .back-home {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      color: #333;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .back-home:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <img src="petconnect.png.png" alt="로고" width="50">
+    <div class="auth">
+      <a href="petcon.html">HOME</a>
+      <a href="login.html">LOGIN</a>
+      <a href="register.html">JOIN</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <h2>강아지 사료 모음</h2>
+
+    <div class="category-filter">
+      <button onclick="filterCategory('전체')">전체</button>
+      <button onclick="filterCategory('건식사료')">건식사료</button>
+      <button onclick="filterCategory('소프트사료')">소프트사료</button>
+      <button onclick="filterCategory('습식사료')">습식사료</button>
+      <button onclick="filterCategory('에어/동결사료')">에어동결사료</button>
+      <button onclick="filterCategory('화식/생식사료')">화식생식사료</button>
+    </div>
+
+    <div class="product-list" id="product-list">
+      <!-- JS로 상품 삽입 -->
+    </div>
+
+    <a href="petcon.html" class="back-home">← 메인으로 돌아가기</a>
+  </div>
+
+  <script>
+    let allData = [];
+
+    fetch("http://127.0.0.1:5000/api/feed")
+      .then(res => res.json())
+      .then(data => {
+        allData = data;
+        renderProducts(data);
+      });
+
+    function renderProducts(data) {
+      const container = document.getElementById("product-list");
+      container.innerHTML = data.map(item => `
+        <div class="product-card">
+          <div class="heart" onclick="toggleHeart(this)">♡</div>
+          <img src="${item.img}" alt="${item.name}" />
+          <h3>${item.name}</h3>
+          <p>₩${item.price.toLocaleString()}</p>
+        </div>
+      `).join('');
+    }
+
+    function filterCategory(category) {
+      if (category === '전체') {
+        renderProducts(allData);
+      } else {
+        const filtered = allData.filter(item => item.category === category);
+        renderProducts(filtered);
+      }
+    }
+
+    function toggleHeart(el) {
+      el.classList.toggle("active");
+      el.textContent = el.classList.contains("active") ? "❤️" : "♡";
+    }
+  </script>
+
+</body>
+</html>

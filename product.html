@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>상품 상세보기</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; background-color: #fff8e7; }
+    .product { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .product img { width: 100%; max-height: 300px; object-fit: contain; }
+    .product h2 { margin-top: 20px; }
+    .product p { font-size: 18px; color: #666; }
+  </style>
+</head>
+<body>
+
+<div class="product" id="product-detail">
+  <p>로딩 중...</p>
+</div>
+
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+
+  fetch(`http://127.0.0.1:5000/api/product/${id}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        document.getElementById("product-detail").innerHTML = "<p>상품을 불러오지 못했습니다.</p>";
+        return;
+      }
+
+      document.getElementById("product-detail").innerHTML = `
+        <img src="${data.img}" alt="${data.name}">
+        <h2>${data.name}</h2>
+        <p>가격: ₩${data.price.toLocaleString()}</p>
+        <p>카테고리: ${data.category}</p>
+        <a href="javascript:history.back()">← 목록으로 돌아가기</a>
+      `;
+    });
+</script>
+
+</body>
+</html>

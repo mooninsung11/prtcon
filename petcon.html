@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PetConnect</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #fff8e7;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 50px;
+      background: white;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 30px;
+    }
+
+    nav ul li {
+      position: relative;
+    }
+
+    nav ul li {
+  position: relative;
+}
+
+nav ul li:hover > ul {
+  display: block;
+}
+
+nav ul li ul {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: #333;
+  color: #fff;
+  padding: 10px;
+  z-index: 1000;
+  min-width: 120px;
+}
+
+nav ul li ul li {
+  padding: 5px 15px;
+  white-space: nowrap;
+}
+
+nav ul li ul li:hover {
+  background: #555;
+}
+
+
+nav ul li ul {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: #333;
+  color: #fff;
+  padding: 10px;
+  z-index: 1000;
+  min-width: 120px;
+}
+
+
+    nav ul li ul li {
+      padding: 5px 15px;
+    }
+
+    nav ul li ul li:hover {
+      background: #555;
+    }
+
+    .auth {
+      display: flex;
+      gap: 20px;
+      margin-right: 60px;
+    }
+
+    .auth a {
+      text-decoration: none;
+      color: #333;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    /* SLIDER */
+    .slider {
+      margin-top: 90px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .slides {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+    }
+
+    .slide {
+      min-width: 100%;
+    }
+
+    .slide img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .slider-buttons {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      transform: translateY(-50%);
+    }
+
+    .slider-buttons button {
+      background: rgba(255,255,255,0.7);
+      border: none;
+      font-size: 24px;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    /* CARD SECTION */
+    .card-section {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 40px;
+      background: #fff;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 250px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .card img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .card h3 {
+      margin: 15px 0 10px;
+      font-size: 18px;
+      color: #444;
+    }
+
+    .card p {
+      font-size: 14px;
+      color: #777;
+    }
+
+    @media (max-width: 768px) {
+      .card-section {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+    .modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
+  text-align: center;
+}
+
+.modal-content input {
+  width: 90%;
+  margin: 10px 0;
+  padding: 8px;
+}
+
+.modal-content button {
+  margin-top: 10px;
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.close {
+  float: right;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.card-link:hover .card {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  transition: all 0.3s;
+}
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 30px;
+  position: relative;
+}
+
+nav ul li {
+  position: relative;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 10px 0;
+  min-width: 160px;
+  z-index: 1000;
+  flex-direction: column;
+}
+
+.dropdown-menu li {
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+.dropdown-menu li a {
+  text-decoration: none;
+  color: #333;
+  font-size: 14px;
+}
+
+.dropdown-menu li a:hover {
+  background-color: #f8f8f8;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: flex;
+  flex-direction: column;
+}
+/* 드롭다운 메뉴 기본 숨김 */
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: white;
+  padding: 10px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 9999; /* ✅ 가장 중요: 메뉴가 위로 올라오게 함 */
+  min-width: 150px;
+}
+
+/* 드롭다운 hover 유지 및 내부 클릭 허용 */
+.dropdown:hover .dropdown-menu,
+.dropdown-menu:hover {
+  display: block;
+}
+
+/* 메뉴 항목 스타일 */
+.dropdown-menu li {
+  padding: 8px 20px;
+  color: black;
+}
+
+.dropdown-menu li:hover {
+  background: #f1f1f1;
+}
+
+.dropdown-menu li a {
+  text-decoration: none;
+  color: black;
+  display: block;
+}
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  background: white;
+  padding: 10px 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 9999;
+  min-width: 160px;
+}
+
+.dropdown-menu li {
+  padding: 8px 20px;
+}
+
+.dropdown-menu li a {
+  text-decoration: none;
+  color: #333;
+  display: block;
+}
+
+.dropdown-menu li:hover {
+  background-color: #f1f1f1;
+}
+
+.dropdown:hover .dropdown-menu,
+.dropdown-menu:hover {
+  display: block;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- 헤더 -->
+  <header>
+    <img src="petconnect.png.png" alt="로고" width="50">
+    <nav>
+      <ul>
+        <li class="dropdown">카테고리
+          <ul class="dropdown-menu">
+            <li><a href="food.html">사료</a></li>
+            <li><a href="snack.html">간식</a></li>
+            <li><a href="goods.html">용품</a></li>
+          </ul>
+        </li>
+        <li class="dropdown">의료 및 편의시설
+          <ul class="dropdown-menu">
+            <li><a href="hospital.html">의료 시설</a></li>
+            <li><a href="places.html">반려견 동반시설</a></li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+    <div class="auth">
+      <a href="#" onclick="openModal()">LOGIN</a>
+      <a href="register.html">JOIN</a>
+      <a href="mypage.html">MYPAGE</a>
+      <a href="#" onclick="openCart()">CART 🛒</a>
+<div id="payment-modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close" onclick="closePayment()">&times;</span>
+    <h2>💳 결제 진행</h2>
+    <p id="purchase-item-name" style="margin-bottom: 15px;"></p>
+
+    <label for="payment-method">결제 수단 선택:</label><br>
+    <select id="payment-method" style="margin: 10px 0; padding: 5px; width: 90%;">
+      <option value="">-- 결제 수단 선택 --</option>
+      <option value="card">💳 신용카드</option>
+      <option value="kakao">📱 카카오페이</option>
+      <option value="naver">🟢 네이버페이</option>
+      <option value="bank">🏦 계좌이체</option>
+    </select><br>
+
+    <button onclick="completePayment()">결제하기</button>
+  </div>
+</div>
+    </div>
+  </header>
+
+  <!-- 슬라이더 -->
+  <div class="slider">
+    <div class="slides" id="slides">
+      <div class="slide"><img src="main1.png.png" alt="배너1"></div>
+      <div class="slide"><img src="main3.png.png" alt="배너3"></div>
+    </div>
+    <div class="slider-buttons">
+      <button onclick="prevSlide()">‹</button>
+      <button onclick="nextSlide()">›</button>
+    </div>
+  </div>
+
+  <!-- 카드 섹션 -->
+  <!-- 카드 섹션 -->
+  <div class="card-section" id="card-section">
+    <a href="food.html" class="card-link">
+      <div class="card">
+        <img src="사료.png" alt="사료 아이콘" />
+        <h3>강아지 사료</h3>
+        <p>건강한 사료를 추천해드려요.</p>
+      </div>
+    </a>
+    <a href="snack.html" class="card-link">
+    <div class="card">      
+      <img src="간식.png" alt="간식 아이콘" />
+      <h3>강아지 간식</h3>
+      <p>건강하고 맛있는 간식을 추천해드려요.</p>
+    </div>
+  </a>
+    <a href="goods.html" class="card-link">
+      <div class="card">
+        <img src="goods.png" alt="용품 아이콘" />
+        <h3>강아지 용품</h3>
+        <p>안심하고 사용하는 용품을 추천해드려요.</p>
+      </div>
+    </a>
+    <a href="places.html" class="card-link">
+      <div class="card">
+        <img src="동반가능.png" alt="동반시설 아이콘" />
+        <h3>반려견 동반시설</h3>
+        <p>함께 갈 수 있는 장소를 확인하세요.</p>
+      </div>
+    </a>
+    <a href="hospital.html" class="card-link">
+      <div class="card">
+        <img src="hospital.png.png" alt="병원 아이콘" />
+        <h3>의료시설</h3>
+        <p>신뢰할 수 있는 동물병원을 소개합니다.</p>
+      </div>
+    </a>
+    
+  </div>
+  
+
+  <script>
+    // 장바구니 관련 로직
+let cart = [];
+
+// 장바구니에 상품 추가 함수
+function addToCart(product) {
+  cart.push(product);
+  alert(`🛒 "${product}"가 장바구니에 추가되었습니다.`);
+}
+
+// 장바구니 열기
+function openCart() {
+  const cartList = document.getElementById("cart-list");
+  cartList.innerHTML = "";
+
+  if (cart.length === 0) {
+    cartList.innerHTML = "<li>장바구니가 비어 있습니다.</li>";
+  } else {
+    cart.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = "• " + item;
+      cartList.appendChild(li);
+    });
+  }
+
+  document.getElementById("cart-modal").classList.remove("hidden");
+}
+
+// 장바구니 닫기
+function closeCart() {
+  document.getElementById("cart-modal").classList.add("hidden");
+}
+
+// 장바구니 비우기
+function clearCart() {
+  cart = [];
+  openCart();
+}
+let currentProduct = "";
+
+function purchaseProduct(product) {
+  currentProduct = product;
+  document.getElementById('purchase-item-name').innerText = `\"${product}\" 상품을 구매하시겠습니까?`;
+  document.getElementById('payment-modal').classList.remove('hidden');
+}
+
+function closePayment() {
+  document.getElementById('payment-modal').classList.add('hidden');
+  document.getElementById('payment-method').value = "";
+}
+
+function completePayment() {
+  const method = document.getElementById("payment-method").value;
+  if (!method) {
+    alert("⚠ 결제 수단을 선택해주세요.");
+    return;
+  }
+
+  // 실제 API 호출 (백엔드 결제 처리 + 주문 DB 기록)
+  fetch("http://localhost:5000/api/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      product: currentProduct,
+      method: method,
+      timestamp: new Date().toISOString()
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert(`✅ 주문 완료! 주문번호: ${data.order_id}`);
+    } else {
+      alert("❌ 주문 실패: " + data.message);
+    }
+    closePayment();
+  })
+  .catch(err => {
+    alert("❌ 서버 오류 발생: 결제를 처리할 수 없습니다.");
+  });
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const chatlog = document.getElementById('chatlog');
+  const userText = input.value.trim();
+  if (!userText) return;
+
+  chatlog.innerHTML += `<div><strong>🙋‍♂️ 사용자:</strong> ${userText}</div>`;
+  input.value = "";
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: userText })
+    });
+
+    const data = await response.json();
+    if (data.response) {
+      chatlog.innerHTML += `<div><strong>🤖 펫챗:</strong> ${data.response}</div>`;
+    } else {
+      chatlog.innerHTML += `<div><strong>⚠️ 펫챗:</strong> 응답이 없습니다.</div>`;
+    }
+    chatlog.scrollTop = chatlog.scrollHeight;
+
+  } catch (error) {
+    chatlog.innerHTML += `<div><strong>❌ 펫챗:</strong> 서버 오류가 발생했어요.</div>`;
+  }
+}
+
+
+
+    let currentIndex = 0;
+    const slides = document.getElementById("slides");
+    const totalSlides = slides.children.length;
+
+    function showSlide(index) {
+      slides.style.transform = `translateX(-${index * 100}%)`;
+    }
+
+    function nextSlide() {
+      currentIndex = (currentIndex + 1) % totalSlides;
+      showSlide(currentIndex);
+    }
+
+    function prevSlide() {
+      currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+      showSlide(currentIndex);
+    }
+
+    setInterval(nextSlide, 4000);
+    function openModal() {
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+// 카드 정보 JSON으로 불러오기
+fetch('data.json')
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById('card-section');
+    container.innerHTML = data.map(card => `
+      <div class="card">
+        <img src="${card.img}" alt="${card.title}">
+        <h3>${card.title}</h3>
+        <p>${card.desc}</p>
+      </div>
+    `).join('');
+  });
+ 
+  // 로그인
+  function login() {
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+
+    console.log("[DEBUG] 로그인 시도:", username, password);
+
+    fetch('http://127.0.0.1:5000/api/login', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    })
+    .then(res => {
+      console.log("[DEBUG] 응답 상태:", res.status);
+      return res.json();
+    })
+    .then(data => {
+      console.log("[DEBUG] 로그인 응답:", data);
+      if (data.success) {
+        // 1) localStorage에 저장
+        localStorage.setItem('username', data.username);
+        // 2) UI 재렌더
+        renderAuth();
+        // 3) 모달 닫기
+        closeModal();
+      } else {
+        alert(`❌ 로그인 실패: ${data.message}`);
+      }
+    })
+    .catch(err => {
+      console.error("[ERROR] 로그인 중 예외:", err);
+      alert("서버 연결 오류가 발생했습니다.");
+    });
+  }
+
+  // auth 영역 렌더링
+  function renderAuth() {
+    const auth = document.querySelector('.auth');
+    const username = localStorage.getItem('username');
+    if (username) {
+      auth.innerHTML = `
+        
+        <a href="#" onclick="logout()">LOGOUT</a>
+        <a href="mypage.html">MYPAGE</a>
+        <a href="#" onclick="openCart()">CART 🛒</a>
+      `;
+    } else {
+      auth.innerHTML = `
+        <a href="#" onclick="openModal()">LOGIN</a>
+        <a href="register.html">JOIN</a>
+        <a href="mypage.html">MYPAGE</a>
+        <a href="#" onclick="openCart()">CART 🛒</a>
+      `;
+    }
+  }
+
+  // 로그아웃
+  function logout() {
+    localStorage.removeItem('username');
+    renderAuth();
+  }
+
+  // 페이지 로드 시 상태 확인
+  document.addEventListener('DOMContentLoaded', renderAuth);
+
+  function toggleChatbot() {
+  const box = document.getElementById('chatbot-box');
+  const btn = document.getElementById('chat-toggle-btn');
+  if (box.style.display === 'none' || box.style.display === '') {
+    box.style.display = 'flex';
+    btn.style.display = 'none';
+  } else {
+    box.style.display = 'none';
+    btn.style.display = 'block';
+  }
+}
+
+// 페이지 진입시 챗봇은 켜져 있고, 닫으면 열기 버튼 노출
+window.onload = function() {
+  document.getElementById('chatbot-box').style.display = 'flex';
+  document.getElementById('chat-toggle-btn').style.display = 'none';
+};
+</script>
+
+
+
+
+<!-- 장바구니 모달 -->
+<!-- 장바구니 모달 -->
+<div id="cart-modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close" onclick="closeCart()">&times;</span>
+    <h2>🛒 장바구니</h2>
+    <ul id="cart-list" style="text-align: left; padding: 0; list-style: none;"></ul>
+    <button onclick="clearCart()">장바구니 비우기</button>
+    <!-- ✅ 결제 버튼 추가 -->
+    <button onclick="purchaseCart()">🛒 결제하기</button>
+  </div>
+</div>
+
+
+
+<!-- GPT 챗봇 UI -->
+<div id="chatbot-box" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 500px;
+  height: 400px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  padding: 16px;
+  font-family: Arial, sans-serif;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+">
+
+  <!-- ✅ 상단바에 제목 + 닫기 버튼 -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <strong style="font-size: 16px;">🐶 펫챗</strong>
+    <button onclick="toggleChatbot()" style="
+      background: none;
+      border: none;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    ">&times;</button>
+  </div>
+
+  <!-- 채팅 로그 -->
+  <div id="chatlog" style="
+    flex: 1;
+    overflow-y: auto;
+    font-size: 15px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: #fafafa;
+  "></div>
+
+  <!-- 입력창 -->
+  <input type="text" id="chat-input" placeholder="무엇이든 물어보세요!" style="
+    padding: 10px;
+    font-size: 15px;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    outline: none;
+  " onkeydown="if(event.key==='Enter') sendChat()" />
+</div>
+
+
+<!-- 로그인/회원가입 모달 -->
+<!-- 로그인/회원가입 모달 -->
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <h2>로그인</h2>
+    
+    <!-- 🔒 ID 추가: JS에서 값 읽어오도록 -->
+    <input type="text" id="login-username" placeholder="아이디"><br>
+    <input type="password" id="login-password" placeholder="비밀번호"><br>
+
+    <!-- ✅ JS 함수 연결 -->
+    <button onclick="login()">로그인</button>
+  </div>
+</div>
+<!-- ✅ 챗봇 열기 버튼 -->
+<button id="chat-toggle-btn" onclick="toggleChatbot()" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  background: #333;
+  color: white;
+  cursor: pointer;
+  display: none;
+  z-index: 10000;
+">💬 챗봇 열기</button>
+
+</body>
+</html>

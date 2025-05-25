@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원가입 - PetConnect</title>
+  <style>
+    body {
+      background-color: #fff8e7;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .register-box {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 320px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #ffb74d;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #ffa726;
+    }
+
+    .back-link {
+      display: block;
+      margin-top: 15px;
+      text-align: center;
+      color: #333;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .btn-small {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      background: #eeeeee;
+      color: #333;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="register-box">
+    <h2>회원가입</h2>
+    <form onsubmit="handleRegister(event)">
+      <input type="text" id="username" placeholder="아이디" required />
+      <div style="margin-bottom: 15px;">
+        <label for="emailId">이메일</label><br>
+        <input type="text" id="emailId" placeholder="이메일 아이디" style="width: 40%;" required />
+        @
+        <select id="emailDomainSelect" onchange="handleEmailDomainChange()" style="width: 40%;" required>
+          <option value="">도메인 선택</option>
+          <option value="gmail.com">gmail.com</option>
+          <option value="naver.com">naver.com</option>
+          <option value="daum.net">daum.net</option>
+          <option value="hanmail.net">hanmail.net</option>
+          <option value="nate.com">nate.com</option>
+          <option value="custom">직접입력</option>
+        </select>
+      
+        <!-- 직접입력용 input (기본은 숨김) -->
+        <input type="text" id="customEmailDomain" placeholder="도메인 직접입력" style="width: 82%; margin-top: 8px; display: none;" />
+        
+        <small style="display:block; color: #666; margin-top: 5px;">
+          이메일은 결제내역 받기, 비밀번호 찾기 등에 사용되므로 정확하게 입력해 주세요.
+        </small>
+      </div>
+      
+      <input type="password" id="password" placeholder="비밀번호" required />
+
+      <input type="text" id="postcode" placeholder="우편번호" required />
+      <button type="button" class="btn-small" onclick="searchAddress()">우편번호 찾기</button>
+
+      <input type="text" id="address" placeholder="주소" required />
+      <input type="text" id="addressDetail" placeholder="상세주소" required />
+
+      <button type="submit">가입하기</button>
+    </form>
+    <a href="petcon.html" class="back-link">← 메인으로 돌아가기</a>
+  </div>
+
+  <!-- 다음 우편번호 API -->
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+  <script>
+    function searchAddress() {
+      new daum.Postcode({
+        oncomplete: function(data) {
+          const roadAddr = data.roadAddress;
+          const extraAddr = data.buildingName ? ` (${data.buildingName})` : '';
+
+          document.getElementById('postcode').value = data.zonecode;
+          document.getElementById('address').value = roadAddr + extraAddr;
+
+          // 상세주소로 커서 이동
+          document.getElementById('addressDetail').focus();
+        }
+      }).open();
+    }
+
+    function handleEmailDomainChange() {
+    const selectBox = document.getElementById('emailDomainSelect');
+    const customInput = document.getElementById('customEmailDomain');
+
+    if (selectBox.value === 'custom') {
+      customInput.style.display = 'inline-block';
+      customInput.required = true;
+    } else {
+      customInput.style.display = 'none';
+      customInput.required = false;
+    }
+  }
+
+
+  function handleRegister(e) {
+    e.preventDefault();
+
+    const username = document.getElementById('username').value;
+    const emailId = document.getElementById('emailId').value;
+    const emailDomainSelect = document.getElementById('emailDomainSelect').value;
+    const customEmailDomain = document.getElementById('customEmailDomain').value;
+    const emailDomain = (emailDomainSelect === 'custom') ? customEmailDomain : emailDomainSelect;
+    const password = document.getElementById('password').value;
+    const postcode = document.getElementById('postcode').value;
+    const address = document.getElementById('address').value;
+    const addressDetail = document.getElementById('addressDetail').value;
+
+    if (!username || !emailId || !emailDomain || !password || !postcode || !address || !addressDetail) {
+      alert('모든 정보를 입력해 주세요.');
+      return;
+    }
+
+    const email = `${emailId}@${emailDomain}`;
+    const fullAddress = `${postcode} ${address} ${addressDetail}`;
+
+    // ✔️ 여기만 /register 로 바꿔주세요
+    fetch('http://127.0.0.1:5000/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: username,
+        email: email,
+        password: password,
+        region: fullAddress
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert('회원가입 완료! 로그인 해주세요.');
+        window.location.href = "petcon.html";  // 메인 페이지로 이동
+      } else {
+        alert('회원가입 실패: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('오류 발생:', error);
+      alert('서버 오류가 발생했습니다.');
+    });
+  }
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>펫 커넥트</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #4e8cff;
+      color: white;
+      padding: 10px 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .logo {
+      font-size: 1.4em;
+      font-weight: bold;
+      cursor: default;
+    }
+
+    .search-bar {
+      flex: 1;
+      margin: 0 40px;
+      position: relative;
+    }
+
+    .search-bar input {
+      width: 100%;
+      max-width: 400px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+    }
+
+    .search-results {
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .auth-buttons button {
+      margin-left: 10px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 16px;
+      background-color: white;
+      color: #4e8cff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .auth-buttons button:hover {
+      background-color: #e3f0ff;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      background-color: #fff;
+      padding: 16px 0;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+
+    .tab {
+      margin: 0 12px;
+      padding: 8px 18px;
+      border-radius: 20px;
+      background-color: #e0e0e0;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .tab.active {
+      background-color: #4e8cff;
+      color: white;
+    }
+
+    .menu-container {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 30px 10px;
+    }
+
+    .menu-container.active {
+      display: flex;
+    }
+
+    .menu-item {
+      width: 90px;
+      margin: 10px;
+      padding: 12px 10px;
+      text-align: center;
+      background-color: #fff;
+      border: 2px solid #cfd8dc;
+      border-radius: 14px;
+      transition: transform 0.2s;
+    }
+
+    .menu-item:hover {
+      transform: translateY(-4px);
+    }
+
+    .menu-item img {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 8px;
+    }
+
+    .menu-item span {
+      display: block;
+      font-size: 13px;
+      color: #333;
+    }
+
+    .menu-item small {
+      font-size: 11px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">펫 커넥트</div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="검색어를 입력하세요..." oninput="handleSearch()">
+      <div class="search-results" id="searchResults">검색 결과가 여기에 표시됩니다.</div>
+    </div>
+    <div class="auth-buttons">
+      <button onclick="window.location.href='login.html'">로그인</button>
+      <button onclick="window.location.href='register.html'">회원가입</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-target="menu1">사료</div>
+    <div class="tab" data-target="menu2">간식</div>
+    <div class="tab" data-target="menu3">용품</div>
+  </div>
+
+  <div class="menu-container active" id="menu1">
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="어덜트">
+      <span>어덜트</span><small>(1-7세)</small>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="퍼피">
+      <span>퍼피</span><small>(1세 미만)</small>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="시니어">
+      <span>시니어</span><small>(7세 이상)</small>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="습식">
+      <span>습식사료</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="자연식">
+      <span>자연식</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="동결식">
+      <span>에어/동결</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="건식">
+      <span>건식사료</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="더보기">
+      <span>더보기</span>
+    </div>
+  </div>
+
+  <div class="menu-container" id="menu2">
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="수제간식">
+      <span>수제간식</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="덴탈껌">
+      <span>덴탈껌</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="영양기능">
+      <span>영양/기능</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="껌">
+      <span>껌</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="저키">
+      <span>저키</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="뼈간식">
+      <span>뼈간식</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="동결건조">
+      <span>동결/건조</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="더보기">
+      <span>더보기</span>
+    </div>
+  </div>
+
+  <div class="menu-container" id="menu3">
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="목줄">
+      <span>목줄</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="장난감">
+      <span>장난감</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="하우스">
+      <span>하우스</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="패드">
+      <span>패드</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="의류">
+      <span>의류</span>
+    </div>
+    <div class="menu-item">
+      <img src="https://via.placeholder.com/36" alt="목욕용품">
+      <span>목욕용품</span>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab');
+    const menus = document.querySelectorAll('.menu-container');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        menus.forEach(menu => menu.classList.remove('active'));
+        const targetId = tab.getAttribute('data-target');
+        document.getElementById(targetId).classList.add('active');
+      });
+    });
+
+    function handleSearch() {
+      const input = document.getElementById('searchInput').value;
+      const results = document.getElementById('searchResults');
+      if (input.length > 0) {
+        results.style.display = 'block';
+        results.innerHTML = `\"\${input}\"에 대한 검색 결과가 없습니다.`;
+      } else {
+        results.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
