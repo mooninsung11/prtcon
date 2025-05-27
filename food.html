@@ -44,7 +44,21 @@
 
     h2 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+    }
+
+    .search-box {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    #search-input {
+      width: 300px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     .category-filter {
@@ -142,13 +156,19 @@
   <div class="container">
     <h2>강아지 사료 모음</h2>
 
+    <!-- 🔍 검색창 -->
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="상품명을 입력하세요..." oninput="filterData()" />
+    </div>
+
+    <!-- 📂 카테고리 필터 -->
     <div class="category-filter">
-      <button onclick="filterCategory('전체')">전체</button>
-      <button onclick="filterCategory('건식사료')">건식사료</button>
-      <button onclick="filterCategory('소프트사료')">소프트사료</button>
-      <button onclick="filterCategory('습식사료')">습식사료</button>
-      <button onclick="filterCategory('에어/동결사료')">에어동결사료</button>
-      <button onclick="filterCategory('화식/생식사료')">화식생식사료</button>
+      <button onclick="setCategory('전체')">전체</button>
+      <button onclick="setCategory('건식사료')">건식사료</button>
+      <button onclick="setCategory('소프트사료')">소프트사료</button>
+      <button onclick="setCategory('습식사료')">습식사료</button>
+      <button onclick="setCategory('에어/동결사료')">에어동결사료</button>
+      <button onclick="setCategory('화식/생식사료')">화식생식사료</button>
     </div>
 
     <div class="product-list" id="product-list">
@@ -160,13 +180,33 @@
 
   <script>
     let allData = [];
+    let currentCategory = "전체";
 
     fetch("http://127.0.0.1:5000/api/feed")
       .then(res => res.json())
       .then(data => {
         allData = data;
-        renderProducts(data);
+        filterData();
       });
+
+    function setCategory(category) {
+      currentCategory = category;
+      filterData();
+    }
+
+    function filterData() {
+      const keyword = document.getElementById("search-input").value.trim().toLowerCase();
+
+      let filtered = allData.filter(item =>
+        item.name.toLowerCase().includes(keyword)
+      );
+
+      if (currentCategory !== '전체') {
+        filtered = filtered.filter(item => item.category === currentCategory);
+      }
+
+      renderProducts(filtered);
+    }
 
     function renderProducts(data) {
       const container = document.getElementById("product-list");
@@ -175,18 +215,9 @@
           <div class="heart" onclick="toggleHeart(this)">♡</div>
           <img src="${item.img}" alt="${item.name}" />
           <h3>${item.name}</h3>
-          <p>₩${item.price.toLocaleString()}</p>
+          <p>₩${Number(item.price).toLocaleString()}</p>
         </div>
       `).join('');
-    }
-
-    function filterCategory(category) {
-      if (category === '전체') {
-        renderProducts(allData);
-      } else {
-        const filtered = allData.filter(item => item.category === category);
-        renderProducts(filtered);
-      }
     }
 
     function toggleHeart(el) {
