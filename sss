@@ -1,82 +1,67 @@
 import pandas as pd
 from tkinter import Tk
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilenames
 import pymysql
+import os
 
 def main():
-    # 1. 파일 열기 (파일 다이얼로그)
+    # 1. 여러 파일 선택창 띄우기
     root = Tk()
     root.withdraw()
-    file_path = askopenfilename(
-        title="CSV 파일을 선택하세요",
+    file_paths = askopenfilenames(
+        title="CSV 파일을 모두 선택하세요 (Ctrl 또는 Shift로 다중 선택)",
         filetypes=[("CSV files", "*.csv")]
     )
     root.destroy()
-    if not file_path:
+    if not file_paths:
         print("파일이 선택되지 않았습니다.")
         return
 
-    # 2. CSV 읽기 (구분자 탭/쉼표 자동 인식)
-    try:
-        df = pd.read_csv(file_path, encoding='utf-8')
-    except:
-        df = pd.read_csv(file_path, encoding='cp949')  # 한글깨짐시
-
-    print(f"\n📂 불러온 파일: {file_path}\n")
-    print(df.head())
-    print(df.columns)
-
-    # 3. NaN → None (MySQL NULL로 들어가게)
-    df = df.where(pd.notnull(df), None)
-
-    # 4. 컬럼 매핑: CSV → Hospital 테이블
-    df_db = pd.DataFrame({
-        'name': df['FCLTY_NM'],
-        'address': df['RDNMADR_NM'],
-        'opening_hours': df['OPER_TIME'],
-        'services': df['FCLTY_INFO_DC'],
-        'avg_rating': None,   # CSV에 없으니 전부 None으로
-        'latitude': df['LC_LA'],
-        'longitude': df['LC_LO']
-    })
-
-    # 5. DB 연결
+    # 2. MySQL 연결
     conn = pymysql.connect(
         host='localhost',
         user='root',
-        password='1234',   # 본인 DB 비밀번호
-        db='test',         # 본인 DB 이름
+        password='dbsgusqja1',
+        db='test',
         charset='utf8'
     )
     cursor = conn.cursor()
 
-    # 6. INSERT 쿼리 (Hospital 테이블)
     sql = """
-    INSERT INTO hospital (name, address, opening_hours, services, avg_rating, latitude, longitude)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO Product (name, price, image_url, category)
+    VALUES (%s, %s, %s, %s)
     """
 
-    count = 0
-    for _, row in df_db.iterrows():
-        # 위도, 경도, 기타 숫자 전처리
-        latitude = float(row['latitude']) if row['latitude'] not in (None, '', ' ') else None
-        longitude = float(row['longitude']) if row['longitude'] not in (None, '', ' ') else None
+    total = 0
+    for file_path in file_paths:
+        df = pd.read_csv(file_path)
+        print(f"\n📂 선택한 파일: {file_path}")
+        print(df.head())
+        print(df.columns)
 
-        cursor.execute(sql, (
-            row['name'],
-            row['address'],
-            row['opening_hours'],
-            row['services'],
-            row['avg_rating'],
-            latitude,
-            longitude
-        ))
-        count += 1
+        df = df.where(pd.notnull(df), None)
+        category = os.path.splitext(os.path.basename(file_path))[0]
+        count = 0
 
-    conn.commit()
-    cursor.close()
+        for _, row in df.iterrows():
+            price_val = row['price']
+            if isinstance(price_val, str):
+                price_val = price_val.replace(',', '').replace('원', '').strip()
+                price_val = float(price_val) if price_val else None
+
+            cursor.execute(sql, (
+                row.get('name', None),
+                price_val,
+                row.get('image_url', None),
+                category
+            ))
+            count += 1
+            total += 1
+
+        print(f"✅ '{category}'에서 {count}개 삽입 완료.")
+
+        conn.commit()
+    cursor.close() 
     conn.close()
-    print(f"✅ 총 {count}개 레코드를 Hospital 테이블에 삽입했습니다.")
+    print(f"\n🔥 모든 파일 합쳐서 총 {total}개 데이터를 Product 테이블에 삽입했습니다.")
 
-if __name__ == "__main__":
-    main()
