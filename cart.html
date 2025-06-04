@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>장바구니 - PetConnect</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background-color: #fdfaf5;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 50px;
+      background-color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ff914d;
+    }
+    .cart-container {
+      margin: 100px auto;
+      max-width: 1000px;
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #fafafa;
+      font-weight: bold;
+    }
+    .total {
+      text-align: right;
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .checkout-btn {
+      display: block;
+      margin: 30px auto 0;
+      padding: 15px 40px;
+      background-color: #ff914d;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .checkout-btn:hover {
+      background-color: #ff752a;
+    }
+    .product-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">PetConnect</div>
+</header>
+
+<div class="cart-container">
+  <h2>장바구니</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>상품</th>
+        <th>수량</th>
+        <th>단가</th>
+        <th>합계</th>
+        <th>삭제</th>
+      </tr>
+    </thead>
+    <tbody id="cart-items">
+      <!-- 서버에서 동적 생성 -->
+    </tbody>
+  </table>
+
+  <div class="total" id="cart-total">총 합계: 0원</div>
+  <button class="checkout-btn" onclick="checkout()">결제하기</button>
+</div>
+
+<script>
+  const API_BASE = "http://127.0.0.1:5000";
+
+  async function loadCartFromServer() {
+    const username = localStorage.getItem("username");
+    if (!username) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/cart?username=${username}`);
+      const cartItems = await response.json();
+      renderCart(cartItems);
+    } catch (error) {
+      console.error("장바구니 불러오기 실패:", error);
+    }
+  }
+
+  function renderCart(items) {
+    const tbody = document.getElementById("cart-items");
+    const totalEl = document.getElementById("cart-total");
+    tbody.innerHTML = "";
+    let total = 0;
+
+    items.forEach((item) => {
+      const subtotal = item.price * item.quantity;
+      total += subtotal;
+
+      const row = `
+        <tr>
+          <td>
+            <img src="${item.img}" alt="${item.name}" class="product-img" />
+            <div>${item.name}</div>
+          </td>
+          <td>
+            <button onclick="changeQuantity(${item.product_id}, ${item.quantity - 1})">➖</button>
+            <span style="margin: 0 8px;">${item.quantity}</span>
+            <button onclick="changeQuantity(${item.product_id}, ${item.quantity + 1})">➕</button>
+          </td>
+          <td>${item.price.toLocaleString()}원</td>
+          <td>${subtotal.toLocaleString()}원</td>
+          <td><button onclick="removeItem(${item.product_id})">삭제</button></td>
+        </tr>
+      `;
+      tbody.innerHTML += row;
+    });
+
+    totalEl.innerText = `총 합계: ${total.toLocaleString()}원`;
+  }
+
+  async function changeQuantity(productId, newQty) {
+    if (newQty < 1) {
+      alert("수량은 1개 이상이어야 합니다.");
+      return;
+    }
+
+    const username = localStorage.getItem("username");
+    try {
+      const res = await fetch(`${API_BASE}/api/cart`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username,
+          product_id: productId,
+          quantity: newQty
+        })
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        loadCartFromServer();
+      } else {
+        alert("수량 변경 실패: " + result.message);
+      }
+    } catch (err) {
+      console.error("수량 변경 오류:", err);
+    }
+  }
+
+  async function removeItem(productId) {
+    const username = localStorage.getItem("username");
+    const confirmDelete = confirm("이 상품을 장바구니에서 삭제하시겠습니까?");
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/cart/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, product_id: productId })
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        loadCartFromServer();
+      } else {
+        alert("삭제 실패: " + result.message);
+      }
+    } catch (err) {
+      console.error("삭제 요청 실패:", err);
+    }
+  }
+
+  function checkout() {
+    alert("결제 페이지로 이동합니다.");
+  }
+
+  window.onload = loadCartFromServer;
+</script>
+
+</body>
+</html>

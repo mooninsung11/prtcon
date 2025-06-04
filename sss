@@ -1,5 +1,6 @@
 import pandas as pd
 from tkinter import Tk
+<<<<<<< HEAD
 from tkinter.filedialog import askopenfilenames
 import pymysql
 import os
@@ -65,3 +66,46 @@ def main():
     conn.close()
     print(f"\n🔥 모든 파일 합쳐서 총 {total}개 데이터를 Product 테이블에 삽입했습니다.")
 
+=======
+from tkinter.filedialog import askopenfilename
+from prophet import Prophet
+import matplotlib.pyplot as plt
+
+# 1. 파일 다이얼로그로 CSV 파일 선택
+root = Tk()
+root.withdraw()
+file_path = askopenfilename(
+    title="CSV 파일을 선택하세요",
+    filetypes=[("CSV files", "*.csv")]
+)
+root.destroy()
+
+if not file_path:
+    print("파일이 선택되지 않았습니다.")
+else:
+    # 2. 데이터 불러오기
+    df = pd.read_csv(file_path)
+
+    # 3. Prophet 입력 포맷으로 변환 (USO_Close 예측)
+    df = df[['Date', 'USO_Close']].rename(columns={'Date': 'ds', 'USO_Close': 'y'})
+    df['ds'] = pd.to_datetime(df['ds'])
+    df['y'] = df['y'].interpolate()  # 결측치 선형 보간
+
+    # 4. Prophet 모델 생성 및 학습
+    m = Prophet()
+    m.fit(df)
+
+    # 5. 미래 90일 예측
+    future = m.make_future_dataframe(periods=90)
+    forecast = m.predict(future)
+
+    # 6. 결과 시각화
+    fig1 = m.plot(forecast)
+    plt.title('USO Time Series of Closing Price (Prophet)')
+    plt.xlabel('time')
+    plt.ylabel('USO Closing Price')
+    plt.show()
+
+    fig2 = m.plot_components(forecast)
+    plt.show()
+>>>>>>> 8eaa13f (수정본)

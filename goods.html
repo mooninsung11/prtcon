@@ -25,18 +25,81 @@
     .heart.active { color: red; }
     .back-home { display: block; text-align: center; margin-top: 30px; color: #333; font-weight: bold; text-decoration: none; }
     .back-home:hover { text-decoration: underline; }
+    /* 로그인 모달 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 15% auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 10px; right: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #ffb74d;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background-color: #ffa726;
+}
+
   </style>
 </head>
 <body>
+<!-- 로그인 팝업 -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeLoginModal()">&times;</span>
+    <h2>로그인</h2>
+    <input type="text" id="login-username" placeholder="아이디" class="login-input">
+    <input type="password" id="login-password" placeholder="비밀번호" class="login-input">
+    <button class="login-btn" onclick="submitLogin()">로그인</button>
+  </div>
+</div>
 
   <header>
-    <a href="petcon.html">
-  <img src="petconnect.png" alt="PetConnect 로고" width="50">
+   <a href="petcon.html">
+  <img src="petconnect.png.png" alt="PetConnect 로고" width="50">
 </a>
 
     <div class="auth">
       <a href="petcon.html">HOME</a>
-      <a href="login.html">LOGIN</a>
+      <a href="#" onclick="openLoginModal()">LOGIN</a>
       <a href="register.html">JOIN</a>
     </div>
   </header>
@@ -69,6 +132,43 @@
   </div>
 
   <script>
+   function submitLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  fetch('http://127.0.0.1:5000/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(`${data.username}님, 로그인 성공!`);
+        closeLoginModal();
+        // 예: 로그인 후 사용자 페이지 이동 또는 UI 업데이트
+        // window.location.href = "/main";
+      } else {
+        alert('로그인 실패: ' + data.message);
+      }
+    })
+    .catch(err => {
+      console.error('[로그인 오류]', err);
+      alert('서버 오류가 발생했습니다.');
+    });
+}
+
+
+// 바깥 클릭 시 닫기
+window.onclick = function(event) {
+  const modal = document.getElementById('loginModal');
+  if (event.target == modal) {
+    modal.style.display = 'none';
+  }
+}
+
     let allData = [];
     let currentCategory = "전체";
 

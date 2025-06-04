@@ -1,60 +1,56 @@
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-import re
+import pymysql
 
-# ✅ 한글 폰트 설정
-plt.rcParams['font.family'] = 'Malgun Gothic'
-plt.rcParams['axes.unicode_minus'] = False
+def main():
+    # 1. 파일 열기
+    root = Tk()
+    root.withdraw()
+    file_path = askopenfilename(
+        title="CSV 파일을 선택하세요",
+        filetypes=[("CSV files", "*.csv")])
+    root.destroy()
+    # CSV 읽기
+    df = pd.read_csv(file_path)
+    print(f"\n📂 불러온 파일: {file_path}\n")
+    print(df.head())
+    print(df.columns)
 
-# 📂 파일 탐색기 열기
-Tk().withdraw()
-file_path = askopenfilename(title="CSV 파일을 선택하세요", filetypes=[("CSV files", "*.csv")])
-data = pd.read_csv(file_path)
+    # 2. NaN → None (MySQL NULL로 들어가게)
+    df = df.where(pd.notnull(df), None)
 
-print(f"\n📂 불러온 파일: {file_path}\n")
-print(data.head())
+    # 3. DB 연결
+    conn = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='1234',   # 본인 DB 비밀번호
+        db='test',         # 본인 DB 이름
+        charset='utf8'
+    )
+    cursor = conn.cursor()
 
-# ✅ 컬럼명 변경
-data.rename(columns={
-    '출발지명': 'origin',
-    'TM_CD': 'hour',
-    'CFTM_AVE_TRFC_QTY': 'total_ride_count'
-}, inplace=True)
+    # 4. INSERT 쿼리
+    sql = """
+    INSERT INTO hospital (name, address, opening_hours, services, avg_rating)
+    VALUES (%s, %s, %s, %s, %s)
+    """
 
-# ✅ origin에서 숫자 제거 (예: '가락1동' → '가락동')
+    count = 0
+    for _, row in df.iterrows():
+        cursor.execute(sql, (
+            row['FCLTY_NM'],          # 이름(예시: 실제 컬럼명 확인 필요!)
+            row['RDNMADR_NM'],        # 주소(예시)
+            row.get('OPER_TIME', ''), # 영업시간(예시)
+            row.get('SERVICE', ''),   # 서비스(예시, 없으면 ''로)
+            row.get('AVG_RATING', None)  # 평점(예시, 없으면 None)
+        ))
+        count += 1
 
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"✅ 총 {count}개 레코드를 hospital 테이블에 삽입했습니다.")
 
-# ✅ 동별 × 시간대별 합산
-data_grouped = data.groupby(['origin', 'hour'], as_index=False).sum()
-
-# ✅ 총 통행량 기준 상위 30개 동 추출
-top_origins = (
-    data_grouped.groupby('origin')['total_ride_count']
-    .sum()
-    .sort_values(ascending=False)
-    .head(30)
-    .index
-)
-
-# ✅ 상위 동 필터링
-filtered_data = data_grouped[data_grouped['origin'].isin(top_origins)]
-
-# ✅ 피벗 테이블 생성
-pivot_data = filtered_data.pivot(index='origin', columns='hour', values='total_ride_count')
-
-# ✅ 히트맵 시각화
-plt.figure(figsize=(15, 12))
-sns.heatmap(pivot_data, cmap='YlGnBu', annot=False, linewidths=.5)
-
-plt.title('상위 30개 동 × 시간대별 통행량 히트맵', fontsize=20)
-plt.xlabel('시간대 (Hour)', fontsize=15)
-plt.ylabel('출발지 (Origin)', fontsize=15)
-
-plt.xticks(fontsize=10)
-plt.yticks(fontsize=8)
-
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    main()  

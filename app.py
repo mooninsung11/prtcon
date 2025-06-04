@@ -4,6 +4,8 @@ from flask_mysqldb import MySQL
 import openai
 import requests
 import json
+from datetime import datetime
+from dateutil import parser
 
 app = Flask(__name__)
 CORS(app)
@@ -14,7 +16,7 @@ openai.api_key = "sk-..."
 # MySQL 설정
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'dbsgusqja1'
+app.config['MYSQL_PASSWORD'] = '1234'
 app.config['MYSQL_DB'] = 'test'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
@@ -52,14 +54,15 @@ def get_foods():
         category = request.args.get("category")
         with mysql.connection.cursor() as cur:
             if category and category != "전체":
-                cur.execute("SELECT name, price, image_url AS img FROM Product WHERE category = %s", (category,))
+                cur.execute("SELECT id, name, price, image_url AS img, category FROM Product WHERE category = %s", (category,))
             else:
-                cur.execute("SELECT name, price, image_url AS img FROM Product")
+                cur.execute("SELECT id, name, price, image_url AS img, category FROM Product")
             data = cur.fetchall()
         return jsonify(data)
     except Exception as e:
         print("[ERROR Foods API]", e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/feed", methods=['GET'])
 def get_feed():
@@ -236,6 +239,150 @@ def user_profile(username):
         mysql.connection.commit()
         return jsonify({'success': True})
 
+@app.route("/api/cart", methods=["GET"])
+def get_cart_items():
+    username = request.args.get("username")
+    if not username:
+        return jsonify({"error": "로그인이 필요합니다."}), 400
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        cursor.execute("SELECT id FROM User1 WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify([])
+
+        user_id = user["id"]
+
+        cursor.execute("""
+            SELECT c.product_id, c.quantity, c.added_at,
+                   COALESCE(p.name, p1.name, p2.name) AS name,
+                   COALESCE(p.price, p1.price, p2.price) AS price,
+                   COALESCE(p.image_url, p1.image_url, p2.image_url) AS img
+            FROM cartitem c
+            LEFT JOIN product p ON c.product_id = p.id
+            LEFT JOIN product1 p1 ON c.product_id = p1.id
+            LEFT JOIN product2 p2 ON c.product_id = p2.id
+            WHERE c.user_id = %s
+        """, (user_id,))
+        rows = cursor.fetchall()
+        cursor.close()
+        return jsonify(rows)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/cart", methods=["POST"])
+def add_to_cart():
+    data = request.get_json()
+    username = data.get("username")
+    product_id = data.get("product_id")
+    quantity = data.get("quantity", 1)
+    added_at_raw = data.get("added_at")
+
+    # ✅ ISO 문자열을 datetime으로 파싱
+    try:
+        if added_at_raw:
+            added_at_dt = parser.isoparse(added_at_raw)
+            added_at = added_at_dt.strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            added_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    except Exception as e:
+        return jsonify(success=False, message=f"날짜 파싱 오류: {str(e)}")
+
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT id FROM User1 WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify(success=False, message="유저를 찾을 수 없습니다.")
+
+        user_id = result["id"]
+
+        cursor.execute("""
+            INSERT INTO cartitem (user_id, product_id, quantity, added_at)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+        """, (user_id, product_id, quantity, added_at))
+
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify(success=True)
+
+    except Exception as e:
+        return jsonify(success=False, message=str(e))
+
+@app.route("/api/cart", methods=["PUT"])
+def update_cart_quantity():
+    data = request.get_json()
+    username = data.get("username")
+    product_id = data.get("product_id")
+    quantity = data.get("quantity")
+
+    if not username or not product_id or quantity is None:
+        return jsonify(success=False, message="필수 정보 누락")
+
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT id FROM User1 WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify(success=False, message="유저 없음")
+        
+        user_id = user["id"]
+        cursor.execute("""
+            UPDATE cartitem SET quantity = %s
+            WHERE user_id = %s AND product_id = %s
+        """, (quantity, user_id, product_id))
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, message=str(e))
+
+
+@app.route("/api/cart/delete", methods=["POST"])
+def delete_cart_item():
+    data = request.get_json()
+    username = data.get("username")
+    product_id = data.get("product_id")
+
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT id FROM User1 WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"success": False, "message": "사용자를 찾을 수 없습니다."})
+
+        user_id = user["id"]
+
+        cursor.execute("DELETE FROM cartitem WHERE user_id = %s AND product_id = %s", (user_id, product_id))
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({"success": True})
+
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)})
+
+@app.route("/api/product/<int:product_id>")
+def get_product(product_id):
+    cursor = mysql.connection.cursor()
+
+    for table in ['product', 'product1', 'product2']:
+        cursor.execute(f"""
+            SELECT id, name, price, image_url AS img, category
+            FROM {table}
+            WHERE id = %s
+        """, (product_id,))
+        result = cursor.fetchone()
+        if result:
+            result["source_table"] = table  # 선택: 어느 테이블에서 가져왔는지
+            cursor.close()
+            return jsonify(result)
+
+    cursor.close()
+    return jsonify({"error": "상품을 찾을 수 없습니다."})
 
 
 

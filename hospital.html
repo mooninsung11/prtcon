@@ -84,10 +84,75 @@
     .search-panel button:hover {
       background-color: #ffa726;
     }
+    /* 로그인 모달 */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 15% auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 10px; right: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #ffb74d;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background-color: #ffa726;
+}
+
   </style>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7832207ca0773f993d562c31827c7c73&libraries=clusterer,services"></script>
 </head>
 <body>
+<!-- 로그인 팝업 모달 -->
+<!-- 로그인 팝업 -->
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeLoginModal()">&times;</span>
+    <h2>로그인</h2>
+    <input type="text" id="login-username" placeholder="아이디" class="login-input">
+    <input type="password" id="login-password" placeholder="비밀번호" class="login-input">
+    <button class="login-btn" onclick="submitLogin()">로그인</button>
+  </div>
+</div>
+
 
 <header>
 <a href="petcon.html">
@@ -96,7 +161,7 @@
 
   <div class="auth">
     <a href="petcon.html">HOME</a>
-    <a href="login.html">LOGIN</a>
+    <a href="#" onclick="openLoginModal()">LOGIN</a>
     <a href="register.html">JOIN</a>
   </div>
 </header>
@@ -110,95 +175,143 @@
 </div>
 
 <script>
+  function submitLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  fetch('http://127.0.0.1:5000/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(`${data.username}님, 로그인 성공!`);
+        closeLoginModal();
+        // 예: 로그인 후 사용자 페이지 이동 또는 UI 업데이트
+        // window.location.href = "/main";
+      } else {
+        alert('로그인 실패: ' + data.message);
+      }
+    })
+    .catch(err => {
+      console.error('[로그인 오류]', err);
+      alert('서버 오류가 발생했습니다.');
+    });
+}
+
   const markers = [];
   const mapContainer = document.getElementById('map');
-  const map = new kakao.maps.Map(mapContainer, {
-    center: new kakao.maps.LatLng(37.5665, 126.9780),
-    level: 5
-  });
+  let map;  // 지도를 나중에 생성
+
   let activeInfowindow = null;
 
-  // 서버에서 데이터 불러오기
-  fetch('http://127.0.0.1:5000/api/hospitals')
-    .then(res => res.json())
-    .then(hospitals => {
-      hospitals.forEach(h => {
-        // 위도/경도 필드명 변경: latitude, longitude
-        const lat = parseFloat(h.latitude);
-        const lng = parseFloat(h.longitude);
+  // 내 위치 받아와서 지도 생성
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
 
-        if (lat && lng) {
-          const marker = new kakao.maps.Marker({
-         
-            position: new kakao.maps.LatLng(lat, lng),
-            title: h.name
-          });
-          markers.push(marker);
-          const content = `
-            <div style="font-family:'Arial';padding:15px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.2);width:280px;">
-              <div style="font-weight:bold;font-size:16px;">${h.name}</div>
-              <div style="color:#888;font-size:14px;">${h.address}</div>
-              <div style="color:#008000;font-size:14px;">${h.opening_hours||''}</div>
-              <div style="margin-top:10px; text-align:right;">
-                <a href="https://map.kakao.com/link/to/${encodeURIComponent(h.name)},${lat},${lng}"
-                   target="_blank"
-                   style="padding:6px 12px; background:#3182f6; color:white; text-decoration:none; border-radius:6px; font-size:13px;">
-                  길찾기
-                </a>
-              </div>
-            </div>
-          `;
-          const infowindow = new kakao.maps.InfoWindow({ content });
-          kakao.maps.event.addListener(marker, 'click', function () {
-            if (activeInfowindow) activeInfowindow.close();
-            infowindow.open(map, marker);
-            activeInfowindow = infowindow;
-          });
-        } else if (h.address) {
-          // 위도/경도 없으면 주소 → 좌표 변환 (카카오 geocoder)
-          const geocoder = new kakao.maps.services.Geocoder();
-          geocoder.addressSearch(h.address, function(result, status) {
-            if (status === kakao.maps.services.Status.OK) {
-              const y = parseFloat(result[0].y);
-              const x = parseFloat(result[0].x);
-              const marker = new kakao.maps.Marker({
-                map: map,
-                position: new kakao.maps.LatLng(y, x),
-                title: h.name
-              });
-              const content = `
-                <div style="font-family:'Arial';padding:15px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.2);width:280px;">
-                  <div style="font-weight:bold;font-size:16px;">${h.name}</div>
-                  <div style="color:#888;font-size:14px;">${h.address}</div>
-                  <div style="color:#008000;font-size:14px;">${h.opening_hours||''}</div>
-                  <div style="margin-top:10px; text-align:right;">
-                    <a href="https://map.kakao.com/link/to/${encodeURIComponent(h.name)},${y},${x}"
-                       target="_blank"
-                       style="padding:6px 12px; background:#3182f6; color:white; text-decoration:none; border-radius:6px; font-size:13px;">
-                      길찾기
-                    </a>
-                  </div>
-                </div>
-              `;
-              const infowindow = new kakao.maps.InfoWindow({ content });
-              kakao.maps.event.addListener(marker, 'click', function () {
-                if (activeInfowindow) activeInfowindow.close();
-                infowindow.open(map, marker);
-                activeInfowindow = infowindow;
-              });
-            }
-          });
-        }
+      const locPosition = new kakao.maps.LatLng(lat, lng);
+
+      // 지도 생성 (내 위치 기준)
+      map = new kakao.maps.Map(mapContainer, {
+        center: locPosition,
+        level: 5
       });
-      const clusterer = new kakao.maps.MarkerClusterer({
+
+      // 내 위치 마커
+      const marker = new kakao.maps.Marker({
+        position: locPosition,
         map: map,
-        markers: markers,
-        gridSize: 80,
-        minLevel: 5,
-        averageCenter: true
+        title: '현재 위치'
       });
-    })
-    .catch(err => console.error('병원 데이터 로드 실패:', err));
+
+      loadHospitalMarkers();  // 병원 마커 로드
+    }, function(error) {
+      console.warn('위치 접근 거부 또는 실패:', error);
+      // 기본 위치로 지도 생성
+      map = new kakao.maps.Map(mapContainer, {
+        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 시청 기준
+        level: 5
+      });
+      loadHospitalMarkers();
+    });
+  } else {
+    alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+    // 기본 위치로 지도 생성
+    map = new kakao.maps.Map(mapContainer, {
+      center: new kakao.maps.LatLng(37.5665, 126.9780),
+      level: 5
+    });
+    loadHospitalMarkers();
+  }
+
+  // 병원 마커 불러오는 함수 (기존 코드 그대로 옮기기)
+  function loadHospitalMarkers() {
+    fetch('http://127.0.0.1:5000/api/hospitals')
+      .then(res => res.json())
+      .then(hospitals => {
+        const clusterMarkers = [];
+
+        hospitals.forEach(h => {
+          const lat = parseFloat(h.latitude);
+          const lng = parseFloat(h.longitude);
+          const geocoder = new kakao.maps.services.Geocoder();
+
+          const createMarker = (y, x) => {
+            const marker = new kakao.maps.Marker({
+              map: map,
+              position: new kakao.maps.LatLng(y, x),
+              title: h.name
+            });
+            clusterMarkers.push(marker);
+
+            const content = `
+              <div style="font-family:'Arial';padding:15px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.2);width:280px;">
+                <div style="font-weight:bold;font-size:16px;">${h.name}</div>
+                <div style="color:#888;font-size:14px;">${h.address}</div>
+                <div style="color:#008000;font-size:14px;">${h.opening_hours || ''}</div>
+                <div style="margin-top:10px; text-align:right;">
+                  <a href="https://map.kakao.com/link/to/${encodeURIComponent(h.name)},${y},${x}" target="_blank"
+                     style="padding:6px 12px; background:#3182f6; color:white; text-decoration:none; border-radius:6px; font-size:13px;">
+                    길찾기
+                  </a>
+                </div>
+              </div>
+            `;
+            const infowindow = new kakao.maps.InfoWindow({ content });
+            kakao.maps.event.addListener(marker, 'click', function () {
+              if (activeInfowindow) activeInfowindow.close();
+              infowindow.open(map, marker);
+              activeInfowindow = infowindow;
+            });
+          };
+
+          if (lat && lng) {
+            createMarker(lat, lng);
+          } else if (h.address) {
+            geocoder.addressSearch(h.address, function(result, status) {
+              if (status === kakao.maps.services.Status.OK) {
+                createMarker(parseFloat(result[0].y), parseFloat(result[0].x));
+              }
+            });
+          }
+        });
+
+        const clusterer = new kakao.maps.MarkerClusterer({
+          map: map,
+          markers: clusterMarkers,
+          gridSize: 80,
+          minLevel: 5,
+          averageCenter: true
+        });
+      })
+      .catch(err => console.error('병원 데이터 로드 실패:', err));
+  }
 </script>
 
 </body>

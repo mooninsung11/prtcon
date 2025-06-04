@@ -5,21 +5,34 @@
   <title>상품 상세보기</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 40px; background-color: #fff8e7; }
-    .product { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .product img { width: 100%; max-height: 300px; object-fit: contain; }
+    .product { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
+    .product img { width: 100%; max-height: 300px; object-fit: contain; display: none; }
     .product h2 { margin-top: 20px; }
     .product p { font-size: 18px; color: #666; }
+    .product button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; display: none; }
+    .product a { display: block; margin-top: 20px; font-weight: bold; color: #333; text-decoration: none; }
   </style>
 </head>
 <body>
 
 <div class="product" id="product-detail">
-  <p>로딩 중...</p>
+  <img id="product-img" src="" alt="상품 이미지">
+  <h2 id="product-name"></h2>
+  <p id="product-price"></p>
+  <p id="product-category"></p>
+  <button id="add-cart-btn">🛒 장바구니 담기</button>
+  <a href="javascript:history.back()">← 목록으로 돌아가기</a>
 </div>
 
 <script>
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
+  if (!id) {
+    document.getElementById("product-detail").innerHTML = "<p>잘못된 접근입니다. 상품 ID가 없습니다.</p>";
+    throw new Error("상품 ID가 없습니다.");
+  }
+
+  let productData = null;
 
   fetch(`http://127.0.0.1:5000/api/product/${id}`)
     .then(res => res.json())
@@ -29,14 +42,53 @@
         return;
       }
 
-      document.getElementById("product-detail").innerHTML = `
-        <img src="${data.img}" alt="${data.name}">
-        <h2>${data.name}</h2>
-        <p>가격: ₩${data.price.toLocaleString()}</p>
-        <p>카테고리: ${data.category}</p>
-        <a href="javascript:history.back()">← 목록으로 돌아가기</a>
-      `;
+      productData = data;
+
+      document.getElementById("product-img").src = data.img;
+      document.getElementById("product-img").alt = data.name;
+      document.getElementById("product-img").style.display = "block";
+
+      document.getElementById("product-name").textContent = data.name;
+      document.getElementById("product-price").textContent = `가격: ₩${data.price.toLocaleString()}`;
+      document.getElementById("product-category").textContent = `카테고리: ${data.category}`;
+
+      const cartBtn = document.getElementById("add-cart-btn");
+      cartBtn.style.display = "inline-block";
+      cartBtn.onclick = addToCart;
     });
+
+  function addToCart() {
+  const username = localStorage.getItem("username");
+  if (!username) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  fetch("http://127.0.0.1:5000/api/cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: username,  // ✅ 여기를 user_id → username 으로 변경
+      product_id: productData.id,
+      quantity: 1,
+      added_at: new Date().toISOString()
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("서버 응답:", data);  // 🔍 디버깅용 콘솔 출력
+    if (data.success) {
+      alert("장바구니에 추가되었습니다!");
+    } else {
+      alert("❌ 장바구니 추가 실패: " + data.message);
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("❌ 서버 오류 발생");
+  });
+}
+
 </script>
 
 </body>

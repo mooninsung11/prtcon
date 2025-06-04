@@ -15,11 +15,70 @@
     .search-panel input { width: 250px; padding: 10px; font-size: 16px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; }
     .search-panel button { width: 100%; padding: 10px; font-size: 16px; color: white; background-color: #ffb74d; border: none; border-radius: 6px; cursor: pointer; }
     .search-panel button:hover { background-color: #ffa726; }
+    .modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 15% auto;
+  padding: 30px;
+  border-radius: 12px;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  position: relative;
+}
+
+.close {
+  position: absolute;
+  top: 10px; right: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #ffb74d;
+  color: white;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-btn:hover {
+  background-color: #ffa726;
+}
   </style>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7832207ca0773f993d562c31827c7c73&libraries=clusterer,services"></script>
 </head>
 <body>
-
+<div id="loginModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeLoginModal()">&times;</span>
+    <h2>로그인</h2>
+    <input type="text" id="login-username" placeholder="아이디" class="login-input">
+    <input type="password" id="login-password" placeholder="비밀번호" class="login-input">
+    <button class="login-btn" onclick="submitLogin()">로그인</button>
+  </div>
+</div>
 <header>
 <a href="petcon.html">
   <img src="petconnect.png.png" alt="PetConnect 로고" width="50">
@@ -27,7 +86,8 @@
 
   <div class="auth">
     <a href="petcon.html">HOME</a>
-    <a href="login.html">LOGIN</a>
+    <a href="#" onclick="openLoginModal()">LOGIN</a>
+    <button class="login-btn" onclick="submitLogin()">로그인</button>
     <a href="register.html">JOIN</a>
   </div>
 </header>
@@ -41,29 +101,100 @@
 </div>
 
 <script>
-  // 지도/마커 초기화
+  function submitLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
+
+  fetch('http://127.0.0.1:5000/api/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(`${data.username}님, 로그인 성공!`);
+        closeLoginModal();
+        // 예: 로그인 후 사용자 페이지 이동 또는 UI 업데이트
+        // window.location.href = "/main";
+      } else {
+        alert('로그인 실패: ' + data.message);
+      }
+    })
+    .catch(err => {
+      console.error('[로그인 오류]', err);
+      alert('서버 오류가 발생했습니다.');
+    });
+}
   const mapContainer = document.getElementById('map');
-  const map = new kakao.maps.Map(mapContainer, {
-    center: new kakao.maps.LatLng(37.5665, 126.9780),
-    level: 5
-  });
+  let map;
   let activeInfowindow = null;
   const markers = [];
-
-  // 전체 데이터 저장
   let placesData = [];
-  fetch('http://127.0.0.1:5000/api/facilities')
-    .then(res => res.json())
-    .then(places => {
-      // is_pet_friendly 필터 (boolean 값이거나 1/0일 수 있음)
-      placesData = places.filter(f => f.is_pet_friendly === true || f.is_pet_friendly === 1 || f.is_pet_friendly === '1');
-      addMarkers(placesData);
-    })
-    .catch(err => console.error('[ERROR] 시설 데이터 로드 실패:', err));
 
-  // 마커 및 클러스터러 추가 함수 (검색에도 재사용)
+  // 지도 생성 (초기에는 빈값, 이후 위치 받아서 설정)
+  function createMap(lat, lng) {
+    const center = new kakao.maps.LatLng(lat, lng);
+    map = new kakao.maps.Map(mapContainer, {
+      center: center,
+      level: 5
+    });
+
+    // 내 위치 마커
+    const myMarker = new kakao.maps.Marker({
+      position: center,
+      map: map,
+      title: '현재 위치'
+    });
+
+    // 내 위치 마커 스타일 변경 (선택사항)
+    // myMarker.setImage(new kakao.maps.MarkerImage('내아이콘.png', new kakao.maps.Size(30,30)));
+
+    // 지도 클릭 시 info 창 닫기
+    kakao.maps.event.addListener(map, 'click', function () {
+      if (activeInfowindow) {
+        activeInfowindow.close();
+        activeInfowindow = null;
+      }
+    });
+
+    // 데이터 로드
+    loadFacilityData();
+  }
+
+  // 위치 기반 지도 시작
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        createMap(lat, lng);
+      },
+      function (err) {
+        console.warn('[GPS 실패] 기본 위치로 전환됨', err);
+        createMap(37.5665, 126.9780); // 서울 시청
+      }
+    );
+  } else {
+    alert('이 브라우저는 위치 정보를 지원하지 않습니다.');
+    createMap(37.5665, 126.9780);
+  }
+
+  // 반려견 동반시설 데이터 불러오기
+  function loadFacilityData() {
+    fetch('http://127.0.0.1:5000/api/facilities')
+      .then(res => res.json())
+      .then(places => {
+        placesData = places.filter(f => f.is_pet_friendly === true || f.is_pet_friendly === 1 || f.is_pet_friendly === '1');
+        addMarkers(placesData);
+      })
+      .catch(err => console.error('[ERROR] 시설 데이터 로드 실패:', err));
+  }
+
+  // 마커 추가
   function addMarkers(data) {
-    // 기존 마커 삭제
     markers.forEach(m => m.setMap(null));
     markers.length = 0;
 
@@ -76,14 +207,14 @@
           title: p.name
         });
         markers.push(marker);
+
         const content = `
           <div style="font-family:Arial; padding:15px; background:white; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.2); width:280px;">
             <div style="font-weight:bold; font-size:16px;">${p.name}</div>
             <div style="color:#888; font-size:14px;">${p.address || p.category || ''}</div>
             <div style="color:#008000; font-size:14px;">${p.contact || ''}</div>
             <div style="margin-top:10px; text-align:right;">
-              <a href="https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${lat},${lng}"
-                 target="_blank"
+              <a href="https://map.kakao.com/link/to/${encodeURIComponent(p.name)},${lat},${lng}" target="_blank"
                  style="padding:6px 12px; background:#3182f6; color:white; text-decoration:none; border-radius:6px; font-size:13px;">
                 길찾기
               </a>
@@ -99,10 +230,10 @@
       }
     });
 
-    // 클러스터러 적용
+    // 클러스터러 설정
     if (window.placeClusterer) {
-      placeClusterer.clear();
-      placeClusterer.addMarkers(markers);
+      window.placeClusterer.clear();
+      window.placeClusterer.addMarkers(markers);
     } else {
       window.placeClusterer = new kakao.maps.MarkerClusterer({
         map: map,
@@ -114,11 +245,11 @@
     }
   }
 
-  // 검색 기능 (장소명/주소/카테고리 등)
+  // 검색 기능
   function searchPlaces() {
     const kw = document.getElementById('searchInput').value.trim().toLowerCase();
     if (!kw) {
-      addMarkers(placesData); // 검색어 없으면 전체
+      addMarkers(placesData);
       return;
     }
     const filtered = placesData.filter(p =>
@@ -127,7 +258,7 @@
       (p.category && p.category.toLowerCase().includes(kw))
     );
     addMarkers(filtered);
-    // 검색 결과 있으면 센터 이동
+
     if (filtered.length > 0) {
       const lat = parseFloat(filtered[0].latitude);
       const lng = parseFloat(filtered[0].longitude);
@@ -137,15 +268,6 @@
       }
     }
   }
-
-  // 지도 클릭시 InfoWindow 닫기
-  kakao.maps.event.addListener(map, 'click', function() {
-    if (activeInfowindow) {
-      activeInfowindow.close();
-      activeInfowindow = null;
-    }
-  });
-
 </script>
 </body>
 </html>

@@ -371,7 +371,7 @@ nav ul li {
       <a href="#" onclick="openModal()">LOGIN</a>
       <a href="register.html">JOIN</a>
       <a href="mypage.html">MYPAGE</a>
-      <a href="#" onclick="openCart()">CART 🛒</a>
+      <a href="cart.html">CART 🛒</a>
 <div id="payment-modal" class="modal hidden">
   <div class="modal-content">
     <span class="close" onclick="closePayment()">&times;</span>
@@ -386,7 +386,7 @@ nav ul li {
       <option value="naver">🟢 네이버페이</option>
       <option value="bank">🏦 계좌이체</option>
     </select><br>
-
+<button onclick="clearCart()">장바구니 비우기</button>
     <button onclick="completePayment()">결제하기</button>
   </div>
 </div>
@@ -449,16 +449,44 @@ nav ul li {
 
   <script>
     // 장바구니 관련 로직
-let cart = [];
 
 // 장바구니에 상품 추가 함수
 function addToCart(product) {
-  cart.push(product);
-  alert(`🛒 "${product}"가 장바구니에 추가되었습니다.`);
+  const userId = localStorage.getItem("username");  // 로그인 시 저장된 user_id
+  if (!userId) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  fetch("http://localhost:5000/api/cart", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: userId,
+      product_id: product.id,
+      quantity: 1,
+      added_at: new Date().toISOString()
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("🛒 장바구니에 담았습니다.");
+    } else {
+      alert("❌ 장바구니 추가 실패: " + data.message);
+    }
+  })
+  .catch(err => {
+    console.error("❌ 서버 오류:", err);
+    alert("서버 오류가 발생했습니다.");
+  });
 }
+
+
 
 // 장바구니 열기
 function openCart() {
+  const cart = JSON.parse(localStorage.getItem("cart") || "[]");
   const cartList = document.getElementById("cart-list");
   cartList.innerHTML = "";
 
@@ -467,13 +495,19 @@ function openCart() {
   } else {
     cart.forEach(item => {
       const li = document.createElement("li");
-      li.textContent = "• " + item;
+      li.innerHTML = `
+        <div style="margin-bottom: 10px;">
+          <img src="${item.img || 'placeholder.png'}" alt="${item.name}" style="width:40px;height:40px;object-fit:cover;margin-right:10px;">
+          <span>${item.name}</span> - ₩${Number(item.price || 0).toLocaleString()}
+        </div>
+      `;
       cartList.appendChild(li);
     });
   }
 
   document.getElementById("cart-modal").classList.remove("hidden");
 }
+
 
 // 장바구니 닫기
 function closeCart() {
@@ -482,16 +516,48 @@ function closeCart() {
 
 // 장바구니 비우기
 function clearCart() {
-  cart = [];
-  openCart();
+  localStorage.removeItem("cart");
+  openCart(); // 다시 렌더링
 }
+
 let currentProduct = "";
 
-function purchaseProduct(product) {
-  currentProduct = product;
-  document.getElementById('purchase-item-name').innerText = `\"${product}\" 상품을 구매하시겠습니까?`;
-  document.getElementById('payment-modal').classList.remove('hidden');
+function purchaseCart() {
+  const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  if (cart.length === 0) {
+    alert("장바구니가 비어 있습니다.");
+    return;
+  }
+
+  const orderData = {
+    username: localStorage.getItem("username") || "guest",
+    items: cart,
+    total_price: cart.reduce((sum, item) => sum + (item.price || 0), 0),
+    timestamp: new Date().toISOString()
+  };
+
+  fetch("http://localhost:5000/api/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData)
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert(`✅ 주문이 완료되었습니다! 주문번호: ${data.order_id}`);
+      localStorage.removeItem("cart");
+      closeCart();
+    } else {
+      alert("❌ 주문 처리 실패: " + data.message);
+    }
+  })
+  .catch(err => {
+    alert("❌ 서버 오류 발생");
+    console.error(err);
+  });
 }
+
+
 
 function closePayment() {
   document.getElementById('payment-modal').classList.add('hidden');
@@ -643,18 +709,17 @@ fetch('data.json')
     const username = localStorage.getItem('username');
     if (username) {
       auth.innerHTML = `
-        
-        <a href="#" onclick="logout()">LOGOUT</a>
-        <a href="mypage.html">MYPAGE</a>
-        <a href="#" onclick="openCart()">CART 🛒</a>
-      `;
+  <a href="#" onclick="logout()">LOGOUT</a>
+  <a href="mypage.html">MYPAGE</a>
+  <a href="cart.html">CART 🛒</a>
+`;
     } else {
       auth.innerHTML = `
-        <a href="#" onclick="openModal()">LOGIN</a>
-        <a href="register.html">JOIN</a>
-        <a href="mypage.html">MYPAGE</a>
-        <a href="#" onclick="openCart()">CART 🛒</a>
-      `;
+  <a href="#" onclick="openModal()">LOGIN</a>
+  <a href="register.html">JOIN</a>
+  <a href="mypage.html">MYPAGE</a>
+  <a href="cart.html">CART 🛒</a>
+`;
     }
   }
 
