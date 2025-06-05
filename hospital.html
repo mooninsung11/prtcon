@@ -96,14 +96,17 @@
 
 .modal-content {
   background-color: #fff;
-  margin: 15% auto;
   padding: 30px;
-  border-radius: 12px;
-  width: 300px;
+  border-radius: 16px;
+  width: 350px;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
+
 
 .close {
   position: absolute;
@@ -113,29 +116,30 @@
   cursor: pointer;
 }
 
-.login-input {
+.login-input,
+.login-btn {
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
+  padding: 12px;
   font-size: 16px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box; /* ← 이게 핵심 */
 }
 
 .login-btn {
-  width: 100%;
-  padding: 10px;
+  margin-top: 10px;
   background-color: #ffb74d;
   color: white;
-  font-size: 16px;
   border: none;
-  border-radius: 6px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .login-btn:hover {
   background-color: #ffa726;
 }
+
 
   </style>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=7832207ca0773f993d562c31827c7c73&libraries=clusterer,services"></script>
@@ -175,33 +179,40 @@
 </div>
 
 <script>
+  function openLoginModal() {
+  document.getElementById("loginModal").style.display = "block";
+}
+
+function closeLoginModal() {
+  document.getElementById("loginModal").style.display = "none";
+}
+
   function submitLogin() {
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value.trim();
 
   fetch('http://127.0.0.1:5000/api/login', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
   })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        alert(`${data.username}님, 로그인 성공!`);
-        closeLoginModal();
-        // 예: 로그인 후 사용자 페이지 이동 또는 UI 업데이트
-        // window.location.href = "/main";
-      } else {
-        alert('로그인 실패: ' + data.message);
-      }
-    })
-    .catch(err => {
-      console.error('[로그인 오류]', err);
-      alert('서버 오류가 발생했습니다.');
-    });
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert(`${data.username}님, 로그인 성공!`);
+      localStorage.setItem("username", data.username); // ✅ 로그인 정보 저장
+      closeLoginModal();
+      window.location.href = "petcon.html"; // ✅ 로그인 후 메인으로 이동
+    } else {
+      alert('로그인 실패: ' + data.message);
+    }
+  })
+  .catch(err => {
+    console.error('[로그인 오류]', err);
+    alert('서버 오류가 발생했습니다.');
+  });
 }
+
 
   const markers = [];
   const mapContainer = document.getElementById('map');
@@ -312,6 +323,34 @@
       })
       .catch(err => console.error('병원 데이터 로드 실패:', err));
   }
+  document.addEventListener("DOMContentLoaded", () => {
+  const username = localStorage.getItem("username");
+  const authContainer = document.querySelector(".auth");
+
+  if (authContainer) {
+    authContainer.innerHTML = ""; // 기존 내용 초기화
+
+    if (username) {
+      authContainer.innerHTML = `
+        <span style="font-weight: bold;">${username}님</span>
+        <a href="#" onclick="logout()">LOGOUT</a>
+      `;
+    } else {
+      authContainer.innerHTML = `
+        <a href="petcon.html">HOME</a>
+        <a href="#" onclick="openLoginModal()">LOGIN</a>
+        <a href="register.html">JOIN</a>
+      `;
+    }
+  }
+});
+
+function logout() {
+  localStorage.removeItem("username");
+  alert("로그아웃 되었습니다.");
+  window.location.href = "petcon.html";
+}
+
 </script>
 
 </body>

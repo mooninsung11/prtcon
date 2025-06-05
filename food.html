@@ -152,13 +152,15 @@
 
 .modal-content {
   background-color: #fff;
-  margin: 15% auto;
   padding: 30px;
-  border-radius: 12px;
-  width: 300px;
+  border-radius: 16px;
+  width: 350px;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .close {
@@ -169,24 +171,24 @@
   cursor: pointer;
 }
 
-.login-input {
+.login-input,
+.login-btn {
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
+  padding: 12px;
   font-size: 16px;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box; /* ← 이게 핵심 */
 }
 
 .login-btn {
-  width: 100%;
-  padding: 10px;
+  margin-top: 10px;
   background-color: #ffb74d;
   color: white;
-  font-size: 16px;
   border: none;
-  border-radius: 6px;
+  font-weight: bold;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 .login-btn:hover {
@@ -244,9 +246,17 @@
   </div>
 
   <script>
-    document.querySelector('.login-btn').addEventListener('click', function () {
-  const username = document.querySelectorAll('.login-input')[0].value;
-  const password = document.querySelectorAll('.login-input')[1].value;
+    function openLoginModal() {
+  document.getElementById("loginModal").style.display = "block";
+}
+
+function closeLoginModal() {
+  document.getElementById("loginModal").style.display = "none";
+}
+
+    function submitLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value.trim();
 
   fetch('http://127.0.0.1:5000/api/login', {
     method: 'POST',
@@ -259,14 +269,16 @@
     .then(data => {
       if (data.success) {
         alert(`환영합니다, ${data.username}님`);
+        localStorage.setItem("username", data.username);
         closeLoginModal();
-        // 여기서 세션 처리 or 페이지 이동 등 추가 가능
+        window.location.href = "petcon.html";
       } else {
         alert(data.message);
       }
     })
     .catch(err => console.error('[로그인 오류]', err));
-});
+}
+
 
     let allData = [];
     let currentCategory = "전체";
@@ -300,19 +312,47 @@
     function renderProducts(data) {
       const container = document.getElementById("product-list");
       container.innerHTML = data.map(item => `
-        <div class="product-card">
-          <div class="heart" onclick="toggleHeart(this)">♡</div>
-          <img src="${item.img}" alt="${item.name}" />
-          <h3>${item.name}</h3>
-          <p>₩${Number(item.price).toLocaleString()}</p>
-        </div>
-      `).join('');
+  <div class="product-card" onclick="location.href='product.html?id=${item.id}'">
+    <div class="heart" onclick="event.stopPropagation(); toggleHeart(this)">♡</div>
+    <img src="${item.img}" alt="${item.name}" />
+    <h3>${item.name}</h3>
+    <p>₩${Number(item.price).toLocaleString()}</p>
+  </div>
+`).join('');
+
     }
 
     function toggleHeart(el) {
       el.classList.toggle("active");
       el.textContent = el.classList.contains("active") ? "❤️" : "♡";
     }
+     document.addEventListener("DOMContentLoaded", () => {
+    const username = localStorage.getItem("username");
+    const authContainer = document.querySelector(".auth");
+
+    if (authContainer) {
+      authContainer.innerHTML = ""; // 초기화
+
+      if (username) {
+        authContainer.innerHTML = `
+          <span style="font-weight: bold;">${username}님</span>
+          <a href="#" onclick="logout()">LOGOUT</a>
+        `;
+      } else {
+        authContainer.innerHTML = `
+          <a href="petcon.html">HOME</a>
+          <a href="#" onclick="openLoginModal()">LOGIN</a>
+          <a href="register.html">JOIN</a>
+        `;
+      }
+    }
+  });
+
+  function logout() {
+    localStorage.removeItem("username");
+    alert("로그아웃 되었습니다.");
+    window.location.href = "petcon.html";
+  }
   </script>
 
 </body>
