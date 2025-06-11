@@ -207,16 +207,17 @@ window.onclick = function(event) {
       renderProducts(filtered);
     }
 
-    function renderProducts(data) {
-      const container = document.getElementById("product-list");
-      container.innerHTML = data.map(item => `
-  <div class="product-card" onclick="location.href='product.html?id=${item.id}'">
-    <div class="heart" onclick="event.stopPropagation(); toggleHeart(this)">♡</div>
-    <img src="${item.img}" alt="${item.name}" />
-    <h3>${item.name}</h3>
-    <p>₩${Number(item.price).toLocaleString()}</p>
-  </div>
-`).join('');
+function renderProducts(data) {
+  const container = document.getElementById("product-list");
+  container.innerHTML = data.map(item => 
+    `<div class="product-card" onclick="location.href='product.html?id=${item.id}&category=${encodeURIComponent(item.category)}'">
+      <div class="heart" onclick="toggleHeart(event, this)">♡</div>
+      <img src="${item.img}" alt="${item.name}" />
+      <h3>${item.name}</h3>
+      <p>₩${Number(item.price).toLocaleString()}</p>
+    </div>`
+  ).join('');
+}
 
       document.addEventListener("DOMContentLoaded", () => {
   const username = localStorage.getItem("username");
@@ -246,7 +247,7 @@ function logout() {
   window.location.href = "petcon.html";
 }
 
-    }
+    
 
     function toggleHeart(el) {
       el.classList.toggle("active");

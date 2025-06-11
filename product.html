@@ -14,50 +14,61 @@
   </style>
 </head>
 <body>
+<!-- ✅ 올바른 구조 -->
+<a href="petcon.html">
+  <img src="petconnect.png.png" alt="PetConnect 로고" width="50">
+</a>
 
 <div class="product" id="product-detail">
   <img id="product-img" src="" alt="상품 이미지">
   <h2 id="product-name"></h2>
   <p id="product-price"></p>
   <p id="product-category"></p>
-  <button id="add-cart-btn">🛒 장바구니 담기</button>
-  <a href="javascript:history.back()">← 목록으로 돌아가기</a>
+  <button id="add-cart-btn" type="button">🛒 장바구니 담기</button>
+  <a href="javascript:history.back()">← 목록으로 뒤로가기</a>
 </div>
 
+
 <script>
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
-  if (!id) {
-    document.getElementById("product-detail").innerHTML = "<p>잘못된 접근입니다. 상품 ID가 없습니다.</p>";
-    throw new Error("상품 ID가 없습니다.");
-  }
+const params = new URLSearchParams(window.location.search);
+const productId = params.get("id");
+const category = params.get("category");
 
-  let productData = null;
+// ✅ 카테고리 기반으로 테이블 결정
+let apiTable = "product";
+if (category && category.includes("사료")) {
+  apiTable = "product1";
+} else if (category && (category.includes("하우스") || category.includes("용품") || category.includes("의류"))) {
+  apiTable = "product2";
+}
 
-  fetch(`http://127.0.0.1:5000/api/product/${id}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.error) {
-        document.getElementById("product-detail").innerHTML = "<p>상품을 불러오지 못했습니다.</p>";
-        return;
-      }
+// ✅ 상품 정보 불러오기
+fetch(`http://127.0.0.1:5000/api/product/${productId}?table=${apiTable}`)
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      document.getElementById("product-detail").innerHTML = "<p>상품을 불러오지 못했습니다.</p>";
+      return;
+    }
 
-      productData = data;
+    // ✅ 상품 데이터에 테이블 정보 포함
+    window.productData = { ...data, table: apiTable };
 
-      document.getElementById("product-img").src = data.img;
-      document.getElementById("product-img").alt = data.name;
-      document.getElementById("product-img").style.display = "block";
+    // 이미지 표시
+    document.getElementById("product-img").src = data.img;
+    document.getElementById("product-img").style.display = "block";
 
-      document.getElementById("product-name").textContent = data.name;
-      document.getElementById("product-price").textContent = `가격: ₩${data.price.toLocaleString()}`;
-      document.getElementById("product-category").textContent = `카테고리: ${data.category}`;
+    document.getElementById("product-name").textContent = data.name;
+    document.getElementById("product-price").textContent = `가격: ₩${Number(data.price).toLocaleString()}`;
+    document.getElementById("product-category").textContent = `카테고리: ${data.category}`;
 
-      const cartBtn = document.getElementById("add-cart-btn");
-      cartBtn.style.display = "inline-block";
-      cartBtn.onclick = addToCart;
-    });
+    const cartBtn = document.getElementById("add-cart-btn");
+    cartBtn.style.display = "inline-block";
+    cartBtn.onclick = addToCart;
+  });
 
-  function addToCart() {
+// ✅ 장바구니 추가 함수
+function addToCart() {
   const username = localStorage.getItem("username");
   if (!username) {
     alert("로그인이 필요합니다.");
@@ -68,15 +79,15 @@
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      username: username,  // ✅ 여기를 user_id → username 으로 변경
+      username: username,
       product_id: productData.id,
+      table: productData.table,  // ✅ 테이블 정보 포함
       quantity: 1,
       added_at: new Date().toISOString()
     })
   })
   .then(res => res.json())
   .then(data => {
-    console.log("서버 응답:", data);  // 🔍 디버깅용 콘솔 출력
     if (data.success) {
       alert("장바구니에 추가되었습니다!");
     } else {
@@ -88,7 +99,6 @@
     alert("❌ 서버 오류 발생");
   });
 }
-
 </script>
 
 </body>

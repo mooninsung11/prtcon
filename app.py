@@ -29,7 +29,7 @@ OLLAMA_URL = "http://localhost:11434/api/chat"
 def chat():
     user_input = request.json.get("message")
     payload = {
-        "model": "gemma:2b",
+        "model": "llama3:latest",
         "messages": [{"role": "user", "content": user_input}]
     }
     try:
@@ -63,32 +63,36 @@ def get_foods():
         print("[ERROR Foods API]", e)
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/api/feed", methods=['GET'])
 def get_feed():
     try:
         category = request.args.get("category")
         feed_categories = ['건식사료', '소프트사료', '습식사료', '에어/동결사료', '화식/생식사료']
+        
         with mysql.connection.cursor() as cur:
             if category and category in feed_categories:
                 cur.execute(
-                    "SELECT name, price, image_url AS img, category FROM Product1 WHERE category = %s", (category,)
+                    "SELECT id, name, price, image_url AS img, category FROM Product1 WHERE category = %s",
+                    (category,)
                 )
             else:
                 format_strings = ','.join(['%s'] * len(feed_categories))
-                sql = f"SELECT name, price, image_url AS img, category FROM Product1 WHERE category IN ({format_strings})"
+                sql = f"SELECT id, name, price, image_url AS img, category FROM Product1 WHERE category IN ({format_strings})"
                 cur.execute(sql, tuple(feed_categories))
+            
             data = cur.fetchall()
+        
         return jsonify(data)
+
     except Exception as e:
         print("[ERROR Feed API]", e)
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/goods", methods=['GET'])
 def get_goods():
     try:
         category = request.args.get("category")
-        # 실제 사용 중인 카테고리 리스트로 맞춰주세요!
         goods_categories = [
             '하우스/스텝', '의류/액세서리', '이동장/유모차',
             '목욕용품', '위생/배변', '급식기/급수기',
@@ -97,16 +101,18 @@ def get_goods():
         with mysql.connection.cursor() as cur:
             if category and category in goods_categories:
                 cur.execute(
-                    "SELECT name, price, image_url, category FROM Product2 WHERE category = %s", (category,)
+                    "SELECT id, name, price, image_url AS img, category FROM Product2 WHERE category = %s", (category,)
                 )
             else:
                 format_strings = ','.join(['%s'] * len(goods_categories))
-                sql = f"SELECT name, price, image_url, category FROM Product2 WHERE category IN ({format_strings})"
+                sql = f"SELECT id, name, price, image_url AS img, category FROM Product2 WHERE category IN ({format_strings})"
                 cur.execute(sql, tuple(goods_categories))
-            goods = cur.fetchall()
-        return jsonify(goods)
+            rows = cur.fetchall()
+        return jsonify(rows)
     except Exception as e:
         print("[ERROR Goods API]", e)
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -233,7 +239,7 @@ def user_profile(username):
             data['email'],
             data['region'],
             data['dog_type'],
-            dog_old,     # ← 변환된 값!
+            dog_old,     
             username
         ))
         mysql.connection.commit()
@@ -247,32 +253,42 @@ def get_cart_items():
 
     try:
         cursor = mysql.connection.cursor()
-
         cursor.execute("SELECT id FROM User1 WHERE username = %s", (username,))
         user = cursor.fetchone()
         if not user:
             return jsonify([])
 
         user_id = user["id"]
+        cursor.execute("SELECT * FROM cartitem WHERE user_id = %s", (user_id,))
+        cart_items = cursor.fetchall()
 
-        cursor.execute("""
-            SELECT c.product_id, c.quantity, c.added_at,
-                   COALESCE(p.name, p1.name, p2.name) AS name,
-                   COALESCE(p.price, p1.price, p2.price) AS price,
-                   COALESCE(p.image_url, p1.image_url, p2.image_url) AS img
-            FROM cartitem c
-            LEFT JOIN product p ON c.product_id = p.id
-            LEFT JOIN product1 p1 ON c.product_id = p1.id
-            LEFT JOIN product2 p2 ON c.product_id = p2.id
-            WHERE c.user_id = %s
-        """, (user_id,))
-        rows = cursor.fetchall()
+        result = []
+        for item in cart_items:
+            product_id = item["product_id"]
+            found = None
+            for table in ["product", "product1", "product2"]:
+                cursor.execute(f"SELECT name, price, image_url, category FROM {table} WHERE id = %s", (product_id,))
+                found = cursor.fetchone()
+                if found:
+                    break
+            if found:
+                result.append({
+                    "product_id": product_id,
+                    "quantity": item["quantity"],
+                    "added_at": item["added_at"],
+                    "name": found["name"],
+                    "price": found["price"],
+                    "img": found["image_url"],
+                    "category": found["category"]
+                })
+
         cursor.close()
-        return jsonify(rows)
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ 장바구니 담기
 @app.route("/api/cart", methods=["POST"])
 def add_to_cart():
     data = request.get_json()
@@ -281,13 +297,11 @@ def add_to_cart():
     quantity = data.get("quantity", 1)
     added_at_raw = data.get("added_at")
 
-    # ✅ ISO 문자열을 datetime으로 파싱
     try:
+        added_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if added_at_raw:
             added_at_dt = parser.isoparse(added_at_raw)
             added_at = added_at_dt.strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            added_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     except Exception as e:
         return jsonify(success=False, message=f"날짜 파싱 오류: {str(e)}")
 
@@ -297,7 +311,6 @@ def add_to_cart():
         result = cursor.fetchone()
         if not result:
             return jsonify(success=False, message="유저를 찾을 수 없습니다.")
-
         user_id = result["id"]
 
         cursor.execute("""
@@ -313,6 +326,8 @@ def add_to_cart():
     except Exception as e:
         return jsonify(success=False, message=str(e))
 
+
+# ✅ 수량 변경
 @app.route("/api/cart", methods=["PUT"])
 def update_cart_quantity():
     data = request.get_json()
@@ -329,12 +344,13 @@ def update_cart_quantity():
         user = cursor.fetchone()
         if not user:
             return jsonify(success=False, message="유저 없음")
-        
+
         user_id = user["id"]
         cursor.execute("""
             UPDATE cartitem SET quantity = %s
             WHERE user_id = %s AND product_id = %s
         """, (quantity, user_id, product_id))
+
         mysql.connection.commit()
         cursor.close()
         return jsonify(success=True)
@@ -366,20 +382,25 @@ def delete_cart_item():
         return jsonify({"success": False, "message": str(e)})
 
 @app.route("/api/product/<int:product_id>")
-def get_product(product_id):
-    cursor = mysql.connection.cursor()
+def get_product_detail(product_id):
+    table = request.args.get("table", "product")
+    try:
+        # ✅ 화이트리스트로 안전한 테이블 이름만 허용
+        valid_tables = {"product", "product1", "product2"}
+        if table not in valid_tables:
+            return jsonify({"error": "Invalid table name"}), 400
 
-    for table in ['product', 'product1', 'product2']:
-        cursor.execute(f"""
-            SELECT id, name, price, image_url AS img, category
-            FROM {table}
-            WHERE id = %s
-        """, (product_id,))
-        result = cursor.fetchone()
-        if result:
-            result["source_table"] = table  # 선택: 어느 테이블에서 가져왔는지
-            cursor.close()
-            return jsonify(result)
+        with mysql.connection.cursor() as cur:
+            sql = f"SELECT id, name, price, image_url AS img, category FROM {table} WHERE id = %s"
+            cur.execute(sql, (product_id,))
+            row = cur.fetchone()
+            if row:
+                return jsonify(row)
+            else:
+                return jsonify({"error": "상품을 찾을 수 없습니다"}), 404
+    except Exception as e:
+        print("[ERROR Product Detail]", e)
+        return jsonify({"error": str(e)}), 500
 
     cursor.close()
     return jsonify({"error": "상품을 찾을 수 없습니다."})

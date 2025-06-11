@@ -23,12 +23,23 @@
       z-index: 100;
     }
     .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 24px;
       font-weight: bold;
       color: #ff914d;
+      text-decoration: none;
+    }
+    .actions a {
+      margin-left: 20px;
+      text-decoration: none;
+      font-weight: bold;
+      color: #333;
+      font-size: 16px;
     }
     .cart-container {
-      margin: 100px auto;
+      margin: 120px auto 50px;
       max-width: 1000px;
       background-color: #ffffff;
       padding: 30px;
@@ -84,7 +95,13 @@
 <body>
 
 <header>
-  <div class="logo">PetConnect</div>
+  <a href="petcon.html" class="logo">
+    <img src="petconnect.png.png" alt="로고" width="40">
+    PetConnect
+  </a>
+  <div class="actions">
+    <a href="petcon.html">🏠 홈으로</a>
+  </div>
 </header>
 
 <div class="cart-container">
